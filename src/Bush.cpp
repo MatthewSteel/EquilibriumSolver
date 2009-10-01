@@ -43,16 +43,16 @@ origin(o), bush(g.numVertices()), sharedNodes(sharedNodes), tempStore(tempStore)
 
 void Bush::setUpGraph(ABGraph& g)
 {
-	//Makes some assumptions about vertex descriptors being nice integers
-	
 	vector<double> distanceMap(g.numVertices(), numeric_limits<double>::infinity());
 
 	g.dijkstra(origin.getOrigin(), distanceMap);
 
 	ABGraph::EdgeIterator begin = g.begin(), end=g.end();
 	/*
-	Partial order to ensure acyclicity: Order on distance, then node id if we get
-	a tie. Remembering, some of these arcs will be imaginary.
+	Partial order to ensure acyclicity: Order on distance, then node id if
+	we get a tie. Remembering, some of these arcs will be imaginary, and
+	that nodes at infinite distance aren't called for. TODO: Fail if a
+	destination is at infinite distance.
 	*/
 	for(ABGraph::EdgeIterator iter = begin; iter != end; ++iter) {
 		if(distanceMap.at(iter->toNode()->getId()) != numeric_limits<double>::infinity()&&distanceMap.at(iter->fromNode()->getId()) != numeric_limits<double>::infinity() && (distanceMap.at(iter->fromNode()->getId()) < distanceMap.at(iter->toNode()->getId()) ||
@@ -84,11 +84,11 @@ void Bush::sendInitialFlows()
 	}
 }//Performs initial all-or-nothing flows in Bush, adding to both BushEdges and GraphEdges.
 
-void Bush::printCrap()
+void Bush::printCrap() const
 {
 	cout << "Printing  crap:" <<endl;
 	cout << "Out arcs:"<<endl;
-	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
+	for(vector<BushNode>::const_iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
 		cout << i-sharedNodes.begin()+1 << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
 		for(vector<BushEdge>::const_iterator j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
 			cout << " " << (j->toNodeId()+1) << "(" << (j->length()) << "," << (j->flow())<<") ";
@@ -96,7 +96,7 @@ void Bush::printCrap()
 		cout << endl;
 	}
 	cout << "Topological Ordering:" << endl;
-	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); i != topologicalOrdering.end(); ++i)
+	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin(); i != topologicalOrdering.end(); ++i)
 		cout << *i+1 << " ";
 	cout << endl;
 }
@@ -199,15 +199,46 @@ void Bush::topologicalSort()
 	}
 }
 
-int Bush::giveCount()
+int Bush::giveCount() const
 {
+	/*
+	Returns the number of arcs with non-zero flow from this bush. Tends to
+	reach about a fifth of all arcs in typical road networks.
+	*/
 	int count = 0;
-	for(vector<vector<BushEdge> >::iterator i = bush.begin(); i != bush.end(); ++i) {
+	for(vector<vector<BushEdge> >::const_iterator i = bush.begin(); i != bush.end(); ++i) {
 		for(vector<BushEdge>::const_iterator j = i->begin(); j != i->end(); ++j) {
 			if(j->used()) ++count;
 		}
 	}
 	return count;
+}
+
+double Bush::allOrNothingCost()
+{
+	/*
+	NOTE: Probably not too slow (5ms or so on largest test case for all
+	bushes once) but if we find a use-case where we call it all the time
+	we can make it linear time by iterating in reverse topological order
+	and storing flows in linear space.
+	TODO: Maybe merge with sendInitialFlows() a bit - looks kinda copy and
+	paste at the moment.
+	*/
+
+	buildTrees();/*BUG: This is necessary. It shouldn't be. Prevents
+	constness, too. Grr...*/
+	
+	double cost = 0.0;
+	for(vector<pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
+		//For each origin,
+		BushNode* node = &sharedNodes.at(i->first);
+		while(node != &sharedNodes.at(origin.getOrigin())) {
+			//Flow back to the bush's root
+			cost += i->second*node->getMinPredecessor()->length();
+			node = node->getMinPredecessor()->fromNode();
+		}
+	}
+	return cost;
 }
 
 Bush::~Bush()

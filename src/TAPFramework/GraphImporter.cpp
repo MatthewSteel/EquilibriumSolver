@@ -23,12 +23,10 @@
 #include <limits>
 #include <list>
 #include <utility>
+#include <cctype>
 #include "TAPFramework/NetworkProperties.hpp"
 #include "TAPFramework/Intersection.hpp"
 #include "TAPFramework/Road.hpp"
-#include <sstream>
-#include <cctype>
-#include <cstdlib>
 
 using namespace std;
 using namespace boost;

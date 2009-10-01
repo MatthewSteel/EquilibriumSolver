@@ -32,9 +32,9 @@ class BushNode
 		BushNode(unsigned);
 		void equilibriate();
 		void updateOutDistances(std::vector<BushEdge>&);
-		double minDist() { return minDistance; }
-		double maxDist() { return maxDistance; }
-		unsigned getId() { return id; }
+		double minDist() const { return minDistance; }
+		double maxDist() const { return maxDistance; }
+		unsigned getId() const { return id; }
 		double getDifference() const { return (maxDistance-minDistance); }
 		BushEdge* getMinPredecessor() { return minPredecessor; }
 		void reset() {

@@ -167,6 +167,19 @@ class ABGraph
 		}
 		
 		/**
+		 * Returns the total user travel time in the current solution.
+		 */
+		double currentCost() const {
+			double cost = 0.0;
+			for(std::vector<std::vector<GraphEdge> >::const_iterator i = graphStorage.begin(); i != graphStorage.end(); ++i) {
+				for(std::vector<GraphEdge>::const_iterator j = i->begin(); j != i->end(); ++j) {
+					cost += j->getFlow()*j->distance;
+				}
+			}
+			return cost;
+		}
+		
+		/**
 		 * Iterator for graph edges. Still probably a little buggy, I
 		 * need to go over this a little more.
 		 */

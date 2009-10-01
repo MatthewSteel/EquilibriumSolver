@@ -25,7 +25,6 @@
 #include <boost/graph/topological_sort.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <iostream>
-#include "FrankWolfeSolver.hpp"
 
 using namespace std;
 using namespace boost;
@@ -134,12 +133,24 @@ void AlgorithmBSolver::outputAnswer(shared_ptr<InputGraph> inGraph) const
 	}
 }
 
-int AlgorithmBSolver::getCount()
+double AlgorithmBSolver::relativeGap()
+{
+	double upperBound = graph->currentCost();
+	double lowerBound = 0.0;
+	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i)
+		lowerBound += (*i)->allOrNothingCost();
+	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
+		lowerBound += (*i)->allOrNothingCost();
+	return 1-lowerBound/upperBound;
+}
+
+int AlgorithmBSolver::getCount() const
 {
 	int count = 0;
-	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i) {
+	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
 		count += (*i)->giveCount();
-	}
+	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
+		count += (*i)->giveCount();
 	return count;
 }
 
@@ -147,8 +158,8 @@ AlgorithmBSolver::~AlgorithmBSolver()
 {
 	if(v) delete v;
 	if(tempStore) delete tempStore;
-	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i)
+	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
 		delete *i;
-	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
+	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		delete *i;
 }

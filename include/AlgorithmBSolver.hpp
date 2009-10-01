@@ -37,7 +37,6 @@
 
 #include "TAPFramework/Road.hpp"
 #include "TAPFramework/Intersection.hpp"
-#include "TAPFramework/TrafficAssignmentSolver.hpp"
 #include "TAPFramework/NetworkProperties.hpp"
 
 /**
@@ -45,7 +44,7 @@
  * the same as) Robert Dial's Algorithm B. Probably needs renaming? Either
  * way, it's really swell.
  */
-class AlgorithmBSolver : public TAPFramework::TrafficAssignmentSolver
+class AlgorithmBSolver
 {
 	typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, TAPFramework::Intersection, TAPFramework::Road> InputGraph;
 	
@@ -101,8 +100,9 @@ class AlgorithmBSolver : public TAPFramework::TrafficAssignmentSolver
 		 * fifth of all bush-specific edges. Could get big space
 		 * savings at the expense of some time if we'd like.)
 		 */
-		int getCount();
-
+		int getCount() const;
+		double relativeGap() ;
+		
 		~AlgorithmBSolver();
 		//NOTE: Have we remembered to clean up nonexistant edges?
 	private:

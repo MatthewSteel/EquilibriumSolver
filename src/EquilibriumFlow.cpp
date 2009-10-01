@@ -20,28 +20,40 @@
 
 #include <utility> //For Pair
 #include <iostream>
+#include <fstream>
 #include <cstdlib> //For EXIT_SUCCESS
+#include <boost/timer.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "AlgorithmBSolver.hpp"
-#include "FrankWolfeSolver.hpp"
 #include "TAPFramework/GraphImporter.hpp"
-#include "TAPFramework/Tester.hpp"
-
 
 using namespace std;
 
+typedef boost::adjacency_list<
+		boost::vecS,
+		boost::vecS,
+		boost::bidirectionalS,
+		TAPFramework::Intersection,
+		TAPFramework::Road> Graph;
+
 int main (int argc, char **argv)
 {
-	AlgorithmBSolver abs;
-	TAPFramework::Tester t(abs);
+	TAPFramework::GraphImporter gi;
 
 //	TAPFramework::NetworkProperties p;
 	//cout << (t.setGraph("networks/Auckland_net2.txt", "networks/Auckland_trips.txt", p)) << endl;
 //	cout << (t.setGraph("networks/SiouxFalls_net.txt", "networks/SiouxFalls_trips.txt", p)) << endl;
 //	cout << (t.setGraph("networks/Anaheim_net.txt", "networks/Anaheim_trips.txt", p)) << endl;
-
 	TAPFramework::NetworkProperties p(0.04, 0.02);
-	cout << (t.setGraph("networks/ChicagoSketch_net.txt", "networks/ChicagoSketch_trips.txt", p)) << endl;//*/
+	ifstream network("networks/ChicagoSketch_net.txt"), trips("networks/ChicagoSketch_trips.txt");
+	boost::shared_ptr<Graph> g = gi.readInGraph(network, trips);
+
+	boost::timer timer;
+
+	AlgorithmBSolver abs(g, p);
+	
+	cout << timer.elapsed() << endl;//*/
 	//	cout << (t.setGraph("networks/TestFW1.txt", "networks/TestFW2.txt", p)) << endl;
 /*	TAPFramework::NetworkProperties p(0.25, 0.1);
 	t.setGraph("networks/ChicagoRegional_net.txt", "networks/ChicagoRegional_trips.txt", p);
@@ -60,8 +72,8 @@ int main (int argc, char **argv)
 	double d = 0.1;
 	for(int i = 0; i < 6; ++i) {
 		cout << d << endl;
-		t.test(100000, d);
-		cout << t.getRelativeGap() << " " << t.getTime() << " " << abs.getCount() << endl;
+		abs.solve(100000, d);
+		cout << timer.elapsed() << " " << abs.getCount() << " " << abs.relativeGap() << endl;
 		d/=100;
 	}
 	//abs.printBushes();

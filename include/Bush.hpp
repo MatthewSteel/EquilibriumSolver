@@ -37,9 +37,10 @@ class Bush
 	public:
 		Bush(const Origin&, ABGraph&, std::vector<BushNode>&, std::vector<std::pair<double, unsigned> >&);//Inits bush, sends initial flows
 		bool fix(double);
-		void printCrap();
+		void printCrap() const;
 		int getOrigin() { return origin.getOrigin(); }
-		int giveCount();
+		int giveCount() const;
+		double allOrNothingCost();
 		~Bush();
 	private:
 		bool updateEdges();
