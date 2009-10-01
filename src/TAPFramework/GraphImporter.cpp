@@ -27,6 +27,8 @@
 #include "TAPFramework/Intersection.hpp"
 #include "TAPFramework/Road.hpp"
 #include <sstream>
+#include <cctype>
+#include <cstdlib>
 
 using namespace std;
 using namespace boost;
@@ -65,24 +67,28 @@ void GraphImporter::readInNetwork(shared_ptr<Graph>& graph, istream& is)
 		cerr << "Guys, bad times with the network file" << endl;
 		return;
 	}
-	is.ignore(numeric_limits<streamsize>::max(),'\n');
-	is.ignore(numeric_limits<streamsize>::max(),'>');
-	
-	is >> nodes;
+	skipComments(is);
+	is.ignore(numeric_limits<streamsize>::max(),'\n');//Skip #zones - not important
 
-	is.ignore(numeric_limits<streamsize>::max(),'>');
+	skipComments(is);
+	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to #nodes
+	is >> nodes;//Read in #nodes
+
+	skipComments(is);
+	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to First Through Node
 	unsigned firstThroughNode;
 	is >> firstThroughNode;
 	zones = firstThroughNode - 1;
-	is.ignore(numeric_limits<streamsize>::max(),'\n');
-	is.ignore(numeric_limits<streamsize>::max(),'>');
 	
+	skipComments(is);
+	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to #edges
 	unsigned arcs;
 	is >> arcs;
 
+	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to end of metadata
 	graph.reset(new Graph(nodes+zones));
-	is.ignore(numeric_limits<streamsize>::max(),';');
 	while (arcs --> 0) {
+		skipComments(is);
 		unsigned to, from;
 		is >> from >> to;
 		
@@ -95,9 +101,8 @@ void GraphImporter::readInNetwork(shared_ptr<Graph>& graph, istream& is)
 		//Don't use speed, type?
 		Road r(BPRFunction(zeroFlowTime, capacity, alpha, beta), length, toll);
 		add_edge(from-1, to-1, r, *graph);
-//		cout << "e " << from << " " << to << endl;
 
-		is.ignore(numeric_limits<streamsize>::max(),';');
+		is.ignore(numeric_limits<streamsize>::max(),';');//Skip to end of row
 	}
 }
 
@@ -107,63 +112,64 @@ void GraphImporter::readInTrips(boost::shared_ptr<Graph>& graph, istream& is)
 		cerr << "Guys, bad times with the trips file" << endl;
 		return;
 	}
-	string s;
-	getline(is, s);
-	unsigned currentNode = 500;
-	while(!is.eof() && s.find("Origin") == string::npos)
-		getline(is, s);
-
-	stringstream ss(s);
-	ss.ignore(numeric_limits<streamsize>::max(),'n');
-	ss >> currentNode;
+	skipComments(is);
+	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to #zones
+	unsigned z;
+	is >> z;
+	
+	skipComments(is);
+	is.ignore(numeric_limits<streamsize>::max(),'\n');//Skip next line
+	skipComments(is);
+	is.ignore(numeric_limits<streamsize>::max(),'\n');//End of metadata
+	
+	int currentNode = -1;
 	list<pair<unsigned, double> > currentDestinations;
-
-	string::size_type index;
-	getline(is,s);
-	ss.clear();
-	for(ss.str(s); !is.eof(); getline(is,s), ss.clear(), ss.str(s)) {
-		if((index = s.find("Origin")) != string::npos) {
+	while(true) {
+		skipComments(is);
+		if(!is.good()) break;
+		if(is.peek() == 'O') {
+			is.ignore(6);
+			//New origin. Add the old one to the graph if it has destinations.
 			if (!currentDestinations.empty()) {
 				(*graph)[vertex(currentNode-1, *graph)].destinations = currentDestinations;
 				currentDestinations.clear();
-//				cout << "origin: " << currentNode << ":" << endl;
-//				for(list<pair<unsigned, double> >::iterator i = (*graph)[vertex(currentNode-1, *graph)].destinations.begin(); i != (*graph)[vertex(currentNode-1, *graph)].destinations.end(); ++i) {
-//					cout << i->first << "(" << i->second << ")" << endl;
-//				}
 			}
-			ss.ignore(index+6);
-			ss >> currentNode;
-			//cout << "found origin " << currentNode << ", index was " << index <<endl;
+			is >> currentNode;
+			continue;
 		} else {
-			for(index = s.find(';'); index != string::npos; ss.ignore(numeric_limits<streamsize>::max(),';'), index = s.find(';', index+1)) {
-				unsigned dest= 0;
-				ss >> dest;
-				if(dest <= zones) dest += nodes;
-				ss.ignore(numeric_limits<streamsize>::max(),':');
-				double flow=0.0;
-				ss >> flow;
-				if (flow > 0 && dest != currentNode)
-					currentDestinations.push_back(pair<unsigned, double>(vertex(dest-1, *graph), flow));
-			}
-		}
-	}
-	if (!currentDestinations.empty())
-		(*graph)[vertex(currentNode-1, *graph)].destinations = currentDestinations;
-/*	is.ignore(numeric_limits<streamsize>::max(),'n');
-	for (int i = 0; i < nodes; ++i) {
-		Vertex v = vertex(i, *graph);
-		list<pair<unsigned, double> > destinations;
-		for (unsigned j = 0; j < nodes; ++j) {
-			unsigned k = j;
-			if(j+1 < zones) k += nodes;
+			//Read in the destination data
+			unsigned toNode;
+			double amount;
+			is >> toNode;
+			if(toNode <= zones) toNode += nodes;
 			is.ignore(numeric_limits<streamsize>::max(),':');
-			double flow;
-			is >> flow;
-
-			if (flow > 0)
-				destinations.push_back(pair<unsigned, double>(vertex(j, *graph), flow));
+			is >> amount;
+			if (amount > 0 && static_cast<int>(toNode) != currentNode)
+				currentDestinations.push_back(pair<unsigned, double>(vertex(toNode-1, *graph), amount));
+			is.ignore(numeric_limits<streamsize>::max(),';');
 		}
-		if (!destinations.empty()) (*graph)[v].destinations = destinations;
 	}
-*/
+	if (!currentDestinations.empty()) {
+		(*graph)[vertex(currentNode-1, *graph)].destinations = currentDestinations;
+	}
+}
+
+void GraphImporter::skipComments(std::istream& i)
+{
+	bool haveComment = true, haveSpace = true;
+	if(i.bad()) return;
+	while(true) {
+		haveSpace = false;
+		while(i.good() && isspace(i.peek())) {
+			i.ignore();
+			haveSpace = true;
+		}
+		if(!(haveSpace || haveComment)) return;
+		haveComment = false;
+		while(i.good() && i.peek() == '~') {
+			i.ignore(numeric_limits<streamsize>::max(),'\n');
+			haveComment = true;
+		}
+		if(!(haveSpace || haveComment)) return;
+	}
 }
