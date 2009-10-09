@@ -31,49 +31,22 @@ using namespace boost;
 
 class BushEdge;
 
-void AlgorithmBSolver::setUp(shared_ptr<InputGraph const> g, const TAPFramework::NetworkProperties& p)
+AlgorithmBSolver::AlgorithmBSolver(shared_ptr<InputGraph const> g, const TAPFramework::NetworkProperties& p): v(0), graph(*g, p), tempStore(num_vertices(*g))
 {
-	graph.reset(new ABGraph(num_vertices(*g)));
-	
-	ODData.reset(new list<Origin>());
-	
-	//set up bush shared data
-	size_t n = num_vertices(*g);
-	v = new vector<BushNode>();
-	v->reserve(n);
-	for(unsigned i = 0; i < n; ++i) {
-		v->push_back(BushNode(i));
-	}
-	
-	InputGraph::edge_iterator inBegin, inEnd;
-	tie(inBegin, inEnd) = edges(*g);
-	//Mirror the basic graph structure (with some extra stuff):
-	for(InputGraph::edge_iterator j = inBegin; j != inEnd; ++j) {
-		graph->add(GraphEdge((*g)[*j], p, v->at(source(*j, *g)), v->at(target(*j, *g)), target(*j,*g)));
-		pair<graph_traits<InputGraph>::edge_descriptor, bool> e = edge(target(*j,*g), source(*j,*g), *g);
-		if(!e.second) {//Imaginary arc setup
-			graph->add(GraphEdge(v->at(target(*j, *g)), v->at(source(*j, *g)), source(*j,*g)));
-		}
-	}
-	
-	ABGraph::EdgeIterator b = graph->begin(), e = graph->end();
-	for(ABGraph::EdgeIterator i = b; i != e; ++i) {
-		GraphEdge& edge = *i;
-		graph->edge(edge.toNode()->getId(), edge.fromNode()->getId())->setInverse(&edge);
-	}
-
+	//NOTE: A little heavy work in the graph ctor in the init list.
+	//Read ODData out of graph
 	for(unsigned i = 0; i < num_vertices(*g); ++i) {
 		const list<pair<unsigned, double> >& l = (*g)[vertex(i, *g)].dests();
 		if(!l.empty()) {
 			Origin o(i);
+			ODData.push_back(i);
 			for(list<pair<unsigned, double> >::const_iterator j = l.begin(); j != l.end(); ++j)
-				o.addDestination(j->first, j->second);
-			ODData->push_back(o);
+				ODData.back().addDestination(j->first, j->second);
 		}
 	}
-	tempStore = new vector<pair<double, unsigned> >(n);
-	for(list<Origin>::iterator i = ODData->begin(); i != ODData->end(); ++i) {
-		bushes.push_back(new Bush(*i, *graph, *v, *tempStore));
+	//Set up a bush for every origin. Most of the work is in here - Dijkstra over the graph in the Bush ctor.
+	for(list<Origin>::iterator i = ODData.begin(); i != ODData.end(); ++i) {
+		bushes.push_back(new Bush(*i, graph, tempStore));
 	}
 }
 
@@ -126,7 +99,7 @@ void AlgorithmBSolver::outputAnswer(shared_ptr<InputGraph> inGraph) const
 	
 	InputGraph::edge_iterator i;
 	for(i = outBegin; i != outEnd; ++i) {
-		GraphEdge* e = graph->edge(source(*i, *inGraph), target(*i, *inGraph));
+		GraphEdge* e = graph.edge(source(*i, *inGraph), target(*i, *inGraph));
 		if (e) {
 			(*inGraph)[*i].updateFlow(e->getFlow());
 		}
@@ -135,7 +108,7 @@ void AlgorithmBSolver::outputAnswer(shared_ptr<InputGraph> inGraph) const
 
 double AlgorithmBSolver::relativeGap()
 {
-	double upperBound = graph->currentCost();
+	double upperBound = graph.currentCost();
 	double lowerBound = 0.0;
 	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i)
 		lowerBound += (*i)->allOrNothingCost();
@@ -157,7 +130,6 @@ int AlgorithmBSolver::getCount() const
 AlgorithmBSolver::~AlgorithmBSolver()
 {
 	if(v) delete v;
-	if(tempStore) delete tempStore;
 	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
 		delete *i;
 	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)

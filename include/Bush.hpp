@@ -35,7 +35,7 @@
 class Bush
 {
 	public:
-		Bush(const Origin&, ABGraph&, std::vector<BushNode>&, std::vector<std::pair<double, unsigned> >&);//Inits bush, sends initial flows
+		Bush(const Origin&, ABGraph&, std::vector<std::pair<double, unsigned> >&);//Inits bush, sends initial flows
 		bool fix(double);
 		void printCrap() const;
 		int getOrigin() { return origin.getOrigin(); }

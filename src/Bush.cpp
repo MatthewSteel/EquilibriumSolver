@@ -29,8 +29,8 @@
 using namespace std;
 using namespace boost;
 
-Bush::Bush(const Origin& o, ABGraph& g, vector<BushNode>& sharedNodes, vector<pair<double,unsigned> >& tempStore) :
-origin(o), bush(g.numVertices()), sharedNodes(sharedNodes), tempStore(tempStore)
+Bush::Bush(const Origin& o, ABGraph& g, vector<pair<double,unsigned> >& tempStore) :
+origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore)
 {
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
@@ -47,14 +47,14 @@ void Bush::setUpGraph(ABGraph& g)
 
 	g.dijkstra(origin.getOrigin(), distanceMap);
 
-	ABGraph::EdgeIterator begin = g.begin(), end=g.end();
+	vector<GraphEdge>::iterator begin = g.begin(), end=g.end();
 	/*
 	Partial order to ensure acyclicity: Order on distance, then node id if
 	we get a tie. Remembering, some of these arcs will be imaginary, and
 	that nodes at infinite distance aren't called for. TODO: Fail if a
 	destination is at infinite distance.
 	*/
-	for(ABGraph::EdgeIterator iter = begin; iter != end; ++iter) {
+	for(vector<GraphEdge>::iterator iter = begin; iter != end; ++iter) {
 		if(distanceMap.at(iter->toNode()->getId()) != numeric_limits<double>::infinity()&&distanceMap.at(iter->fromNode()->getId()) != numeric_limits<double>::infinity() && (distanceMap.at(iter->fromNode()->getId()) < distanceMap.at(iter->toNode()->getId()) ||
 			(distanceMap.at(iter->fromNode()->getId()) == distanceMap.at(iter->toNode()->getId()) &&
 			iter->fromNode()->getId() < iter->toNode()->getId()))) {
@@ -225,8 +225,7 @@ double Bush::allOrNothingCost()
 	paste at the moment.
 	*/
 
-	buildTrees();/*BUG: This is necessary. It shouldn't be. Prevents
-	constness, too. Grr...*/
+	buildTrees();// NOTE: Breaks constness. Grr. Make sharedNodes mutable?
 	
 	double cost = 0.0;
 	for(vector<pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {

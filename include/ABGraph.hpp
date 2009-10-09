@@ -30,6 +30,12 @@
 #include "BushNode.hpp"
 #include <iostream>
 
+#include "TAPFramework/Road.hpp"
+#include "TAPFramework/Intersection.hpp"
+#include "TAPFramework/NetworkProperties.hpp"
+
+#include <boost/graph/adjacency_list.hpp>
+
 /**
  * Graph class when I misdiagnosed some ridiculous memory usage as a library
  * problem. Provides some nice, simple storage for Graph data, and has an
@@ -40,10 +46,22 @@
 class ABGraph
 {
 	private:
-		std::vector<std::vector<GraphEdge> > graphStorage;
+		std::vector<std::vector<GraphEdge*> > edgeStructure;
+		std::vector<GraphEdge> edgeStorage;
+		std::vector<BushNode> nodeStorage;
+		//Better idea: Store these things in a row, as now, but ordered specially so we can store structure as 2 iterators.
 		unsigned numberOfEdges;
 		//NOTE: Is there any reason to store this member?
 		//Is it ever used?
+
+		/**
+		 * Adds an edge. To-node and from-node are retrieved from the
+		 * parameter's data if they're necessary.
+		 */
+		void add(GraphEdge e) {
+			edgeStorage.push_back(e);
+			this->edgeStructure[e.fromNode()->getId()].push_back(&edgeStorage.back());
+		}
 
 		/**
 		 * A simple heap for Dijkstra's algorithm. Functionality will
@@ -87,7 +105,7 @@ class ABGraph
 				 * id, pushes/updates the heap positions of
 				 * the edges' to-nodes if prudent.
 				 */
-				void maybePush(unsigned, std::vector<GraphEdge>&);
+				void maybePush(unsigned, std::vector<GraphEdge*>&);
 			private:
 				void bubbleUp(unsigned);
 				void bubbleDown(unsigned);
@@ -95,31 +113,30 @@ class ABGraph
 				std::vector<int> positions;
 				std::vector<double>& distances;
 		};
-
+		typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, TAPFramework::Intersection, TAPFramework::Road> InputGraph;
 	public:
-		class EdgeIterator;
-		
 		/**
 		 * ABGraph constructor. Just allocates storage for the edges,
 		 * really.
 		 */
-		ABGraph(unsigned size) :graphStorage(size), numberOfEdges(0) {}
-
-		/**
-		 * Adds an edge. To-node and from-node are retrieved from the
-		 * parameter's data if they're necessary.
-		 */
-		void add(GraphEdge e) {
-			this->graphStorage[e.fromNode()->getId()].push_back(e);
-			++numberOfEdges;
-		}
+		ABGraph(const InputGraph& g, const TAPFramework::NetworkProperties& p);
 
 		/**
 		 * Simple structure querying to get edges between two nodes
 		 */
 		GraphEdge* edge(unsigned from, unsigned to) {
-			for(std::vector<GraphEdge>::iterator i = graphStorage[from].begin(); i != graphStorage[from].end(); ++i) {
-				if(i->getToId() == to) return &(*i);
+			for(std::vector<GraphEdge*>::iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
+				if((*i)->getToId() == to) return (*i);
+			}
+			return 0;
+		}//Not worth doing a binary search because traffic networks are so sparse
+		
+		/**
+		 * Simple structure querying to get edges between two nodes
+		 */
+		GraphEdge* const edge(unsigned from, unsigned to) const {
+			for(std::vector<GraphEdge*>::const_iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
+				if((*i)->getToId() == to) return (*i);
 			}
 			return 0;
 		}//Not worth doing a binary search because traffic networks are so sparse
@@ -127,7 +144,7 @@ class ABGraph
 		/**
 		 * Gets the number of vertices in the graph.
 		 */
-		std::size_t numVertices() const { return graphStorage.size(); }
+		std::size_t numVertices() const { return edgeStructure.size(); }
 		/**
 		 * Gets the number of edges in the graph.
 		 */
@@ -137,17 +154,16 @@ class ABGraph
 		 * Returns an EdgeIterator pointing to the "first" out-edge
 		 * of the "first" vertex of the ABGraph.
 		 */
-		const EdgeIterator begin() {
-			if(graphStorage.front().empty()) std::cout << "dang"<<std::endl;
-			return EdgeIterator(graphStorage.begin(), graphStorage.front().begin(), graphStorage.end());
+		std::vector<GraphEdge>::iterator begin() {
+			return edgeStorage.begin();
 		}
 
 		/**
 		 * Returns an EdgeIterator pointing just past the "last"
 		 * out-edge of the "last" vertex of the ABGraph.
 		 */
-		const EdgeIterator end() {
-			return EdgeIterator(graphStorage.end(), graphStorage.back().end(), graphStorage.end());
+		std::vector<GraphEdge>::iterator end() {
+			return edgeStorage.end();
 		}
 		//NOTE: Hope we never have to deal with 0 node graphs? Size 0 vectors don't have a back().
 		//NOTE: Possibly buggy even without considering 0 node graphs. Have a look over this some time.
@@ -161,7 +177,7 @@ class ABGraph
 			DijkstraHeap d(origin, distances);
 			while(!d.empty()) {
 				unsigned top = d.pop();
-				d.maybePush(top, graphStorage.at(top));
+				d.maybePush(top, edgeStructure.at(top));
 			}
 			
 		}
@@ -171,38 +187,16 @@ class ABGraph
 		 */
 		double currentCost() const {
 			double cost = 0.0;
-			for(std::vector<std::vector<GraphEdge> >::const_iterator i = graphStorage.begin(); i != graphStorage.end(); ++i) {
-				for(std::vector<GraphEdge>::const_iterator j = i->begin(); j != i->end(); ++j) {
-					cost += j->getFlow()*j->distance;
-				}
-			}
+			for(std::vector<GraphEdge>::const_iterator i = edgeStorage.begin(); i != edgeStorage.end(); ++i)
+				if(i->getFlow() != 0) cost += i->getFlow()*i->distance;
+				//0 flow could mean imaginary arc, in which case 0*infinity = NaN.
 			return cost;
 		}
 		
 		/**
-		 * Iterator for graph edges. Still probably a little buggy, I
-		 * need to go over this a little more.
+		 *
 		 */
-		class EdgeIterator
-		{
-			public:
-				void operator=(const EdgeIterator& i);
-				bool operator==(const EdgeIterator& i);
-				bool operator!=(const EdgeIterator& i);
-				EdgeIterator& operator++();
-				GraphEdge& operator*() { return *second; }
-				GraphEdge* operator->() { return &(*second); }
-			private:
-				EdgeIterator(
-					std::vector<std::vector<GraphEdge> >::iterator,
-					std::vector<GraphEdge>::iterator,
-					std::vector<std::vector<GraphEdge> >::iterator);
-				
-				friend class ABGraph;
-				std::vector<std::vector<GraphEdge> >::iterator first;
-				std::vector<GraphEdge>::iterator second;
-				std::vector<std::vector<GraphEdge> >::iterator firstLast;
-		};
+		std::vector<BushNode>& nodes() { return nodeStorage; }
 };
 
 #endif

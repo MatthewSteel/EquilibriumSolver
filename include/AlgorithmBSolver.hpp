@@ -53,15 +53,7 @@ class AlgorithmBSolver
 		/**
 		 * TODO
 		 */
-		AlgorithmBSolver():tempStore(0), v(0) {}
-		/**
-		 * TODO
-		 */
-		AlgorithmBSolver(boost::shared_ptr<InputGraph> g, const TAPFramework::NetworkProperties& p = TAPFramework::NetworkProperties()) :tempStore(0), v(0) { setUp(g,p); }
-		/**
-		 * TODO
-		 */
-		void setUp(boost::shared_ptr<InputGraph const>, const TAPFramework::NetworkProperties& = TAPFramework::NetworkProperties());
+		AlgorithmBSolver(boost::shared_ptr<InputGraph const> g, const TAPFramework::NetworkProperties& p = TAPFramework::NetworkProperties());
 		
 		/**
 		 * TODO
@@ -88,8 +80,8 @@ class AlgorithmBSolver
 		
 		friend std::ostream& operator<<(std::ostream& o, AlgorithmBSolver& e)
 		{
-			ABGraph::EdgeIterator begin=e.graph->begin(), end=e.graph->end(); //Different class name?
-			for(ABGraph::EdgeIterator i = begin; i != end; ++i)
+			std::vector<GraphEdge>::iterator begin=e.graph.begin(), end=e.graph.end(); //Different class name?
+			for(std::vector<GraphEdge>::iterator i = begin; i != end; ++i)
 				o << "Edge (" << i->fromNode()->getId() << ',' << i->toNode()->getId() << "), " << *i << '\n';
 			return o;
 		}//FIXME: Make this do something more useful? Format it nicely?
@@ -107,17 +99,17 @@ class AlgorithmBSolver
 		//NOTE: Have we remembered to clean up nonexistant edges?
 	private:
 		//Edge data:
-		boost::shared_ptr<ABGraph> graph;
+		ABGraph graph;
 		
 		//Solver origin-specific data:
 		std::list<Bush*> bushes;
 		std::list<Bush*> lazyBushes;
-		boost::shared_ptr<std::list<Origin> > ODData;
+		std::list<Origin> ODData;
 		
 		//So we don't have to allocate in topological sorts? Really?
 		//A premature optimisation, but probably an optimisation.
 		//So long as we clean it up, I guess...
-		std::vector<std::pair<double, unsigned> > *tempStore;
+		std::vector<std::pair<double, unsigned> > tempStore;
 		
 		//Node data:
 		std::vector<BushNode> *v;
