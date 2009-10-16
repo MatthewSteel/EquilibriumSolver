@@ -56,6 +56,7 @@ class GraphImporter {
 		void readInTrips(boost::shared_ptr<Graph>&, std::istream&);
 	private:
 		void skipComments(std::istream&);
+		void endMetadata(std::istream&);
 		unsigned nodes, zones;
 };
 

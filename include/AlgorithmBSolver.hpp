@@ -58,7 +58,7 @@ class AlgorithmBSolver
 		/**
 		 * TODO
 		 */
-		void solve(unsigned iterationLimit = std::numeric_limits<unsigned>::max(), double accuracy = 0);
+		void solve(unsigned iterationLimit = std::numeric_limits<unsigned>::max());
 
 		/**
 		 * TODO

@@ -83,7 +83,8 @@ void GraphImporter::readInNetwork(shared_ptr<Graph>& graph, istream& is)
 	unsigned arcs;
 	is >> arcs;
 
-	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to end of metadata
+	endMetadata(is);
+	
 	graph.reset(new Graph(nodes+zones));
 	while (arcs --> 0) {
 		skipComments(is);
@@ -98,6 +99,7 @@ void GraphImporter::readInNetwork(shared_ptr<Graph>& graph, istream& is)
 		is >> capacity >> length >> zeroFlowTime >> alpha >> beta >> speed >> toll;
 		//Don't use speed, type?
 		Road r(BPRFunction(zeroFlowTime, capacity, alpha, beta), length, toll);
+		//cout << "From: " << from << ", To: " << to << " " << zeroFlowTime << " " << capacity << " " << alpha << " " << beta << endl;
 		add_edge(from-1, to-1, r, *graph);
 
 		is.ignore(numeric_limits<streamsize>::max(),';');//Skip to end of row
@@ -118,7 +120,7 @@ void GraphImporter::readInTrips(boost::shared_ptr<Graph>& graph, istream& is)
 	skipComments(is);
 	is.ignore(numeric_limits<streamsize>::max(),'\n');//Skip next line
 	skipComments(is);
-	is.ignore(numeric_limits<streamsize>::max(),'\n');//End of metadata
+	endMetadata(is);
 	
 	int currentNode = -1;
 	list<pair<unsigned, double> > currentDestinations;
@@ -170,4 +172,19 @@ void GraphImporter::skipComments(std::istream& i)
 		}
 		if(!(haveSpace || haveComment)) return;
 	}
+}
+
+void GraphImporter::endMetadata(std::istream& is)
+{
+	//Sometimes there is misc metadata. Ugh. Skip that stuff.
+	while (true) {
+		is.ignore(numeric_limits<streamsize>::max(),'<');//Skip to "end of metadata" hopefully	
+		bool out = true;
+		for(int i = 0; i < 15; ++i) {
+			out = out && (is.get() == "END OF METADATA"[i]);
+		}
+		if(out) break;
+	}
+	is.ignore(numeric_limits<streamsize>::max(),'>');
+	
 }

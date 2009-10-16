@@ -41,6 +41,7 @@ class Bush
 		int getOrigin() { return origin.getOrigin(); }
 		int giveCount() const;
 		double allOrNothingCost();
+		double maxDifference();
 		~Bush();
 	private:
 		bool updateEdges();

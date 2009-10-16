@@ -53,6 +53,11 @@ void Bush::setUpGraph(ABGraph& g)
 	we get a tie. Remembering, some of these arcs will be imaginary, and
 	that nodes at infinite distance aren't called for. TODO: Fail if a
 	destination is at infinite distance.
+	
+	BUG (maybe): nodes at equal distance because of zero-length connecting
+	arcs aren't handled correctly. The partial order criteria don't ensure
+	connectivity. Breaks Philadelphia. Bar-Gera (2002) says arcs must have
+	strictly positive lengths, though.
 	*/
 	for(vector<GraphEdge>::iterator iter = begin; iter != end; ++iter) {
 		if(distanceMap.at(iter->toNode()->getId()) != numeric_limits<double>::infinity()&&distanceMap.at(iter->fromNode()->getId()) != numeric_limits<double>::infinity() && (distanceMap.at(iter->fromNode()->getId()) < distanceMap.at(iter->toNode()->getId()) ||
@@ -183,6 +188,9 @@ void Bush::topologicalSort()
 	 *   maxDist(v1)< maxDist(v2).
 	 * Indexes of all nodes ending up in the order need to begin in it,
 	 * too.
+	 * NOTE: If we deal with adjacent nodes with potential two-way zero-
+	 * length connecting arcs we may need to think harder. Bar-Gera (2002)
+	 * says, "strictly positive", though.
 	 */
 	
 	vector<pair<double,unsigned> >::iterator index = tempStore.begin();
@@ -242,3 +250,12 @@ double Bush::allOrNothingCost()
 
 Bush::~Bush()
 {}
+
+double Bush::maxDifference() {
+	buildTrees();
+	double ret = 0.0;
+	for(std::vector<std::pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
+		if(ret < sharedNodes[i->first].getDifference()) ret = sharedNodes[i->first].getDifference();
+	}
+	return ret;
+}

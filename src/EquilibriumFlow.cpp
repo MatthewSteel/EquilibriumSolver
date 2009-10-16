@@ -37,16 +37,11 @@ typedef boost::adjacency_list<
 		TAPFramework::Intersection,
 		TAPFramework::Road> Graph;
 
-int main (int argc, char **argv)
+void general(const char* netString, const char* tripString, double distanceFactor=0.0, double tollFactor=0.0, double gap = 1e-14)
 {
 	TAPFramework::GraphImporter gi;
-
-//	TAPFramework::NetworkProperties p;
-	//cout << (t.setGraph("networks/Auckland_net2.txt", "networks/Auckland_trips.txt", p)) << endl;
-//	cout << (t.setGraph("networks/SiouxFalls_net.txt", "networks/SiouxFalls_trips.txt", p)) << endl;
-//	cout << (t.setGraph("networks/Anaheim_net.txt", "networks/Anaheim_trips.txt", p)) << endl;
-//	TAPFramework::NetworkProperties p(0.04, 0.02);
-/*	ifstream network("networks/Anaheim_net.txt"), trips("networks/Anaheim_trips.txt");
+	TAPFramework::NetworkProperties p(distanceFactor, tollFactor);
+	ifstream network(netString), trips(tripString);
 	boost::shared_ptr<Graph> g = gi.readInGraph(network, trips);
 
 	boost::timer timer;
@@ -54,49 +49,33 @@ int main (int argc, char **argv)
 	AlgorithmBSolver abs(g, p);
 	double time=0.0;
 	cout << (time += timer.elapsed()) << endl;//*/
-	//	cout << (t.setGraph("networks/TestFW1.txt", "networks/TestFW2.txt", p)) << endl;
-	TAPFramework::NetworkProperties p(0.25, 0.1);
-	ifstream network("networks/ChicagoRegional_net.txt"), trips("networks/ChicagoRegional_trips.txt");
-	boost::shared_ptr<Graph> g = gi.readInGraph(network, trips);
-	double time = 0, tempTime = 0;
-
-	boost::timer timer;
-	AlgorithmBSolver abs(g, p);
-	time += timer.elapsed() - tempTime;
-	
-	cout.precision(10);
-
-	tempTime = timer.elapsed();
-	abs.solve(100000, 10);
-	time += timer.elapsed() - tempTime;
-	
-	cout << "10 Done, testing"<<endl;
-	cout << abs.relativeGap() << " " << time << " " << abs.getCount() << endl;
-
-	tempTime = timer.elapsed();
-	abs.solve(100000, 1);
-	time += timer.elapsed() - tempTime;
-
-	cout << "1 Done, testing"<<endl;
-	cout << abs.relativeGap() << " " << time << " " << abs.getCount() << endl;
-
-	tempTime = timer.elapsed();
-	abs.solve(100000, 0.1);
-	time += timer.elapsed() - tempTime;
-
-	cout << "0.1 Done, testing"<<endl;
-	cout << abs.relativeGap() << " " << time << " " << abs.getCount() << endl;
-	exit(0);//*/
-
-	double d = 0.1;
+/*	double d = 0.1;
 	for(int i = 0; i < 6; ++i) {
 		boost::timer t2;
 		cout << d << endl;
-		abs.solve(100000, d);
+		abs.solve(10000, d);
 		time += t2.elapsed();
 		cout << time << ' ' <<abs.relativeGap() << endl;
 		d/=100;
 	}
-	//abs.printBushes();
-	//cout << abs << endl;
+*/
+	while(abs.relativeGap() > gap) {
+		boost::timer t2;
+		//cout << i << endl;
+		abs.solve(12);
+		time += t2.elapsed();
+		cout << time << ' ' <<abs.relativeGap() << endl;
+	}
+	
+	cout << time << endl;
+}
+
+int main (int argc, char **argv)
+{
+	general("networks/ChicagoSketch_net.txt", "networks/ChicagoSketch_trips.txt", 0.04, 0.02);
+//	general("networks/Auckland_net2.txt", "networks/Auckland_trips.txt");
+//	general("networks/SiouxFalls_net.txt", "networks/SiouxFalls_trips.txt");
+//	general("networks/Anaheim_net.txt", "networks/Anaheim_trips.txt");
+//	general("networks/ChicagoRegional_net.txt", "networks/ChicagoRegional_trips.txt", 0.25, 0.1, 1e-4);
+//	general("networks/Philadelphia_network.txt", "networks/Philadelphia_trips.txt", 0.0, 0.055, 1e-4);//Known BUG: Doesn't quite work just yet.
 }
