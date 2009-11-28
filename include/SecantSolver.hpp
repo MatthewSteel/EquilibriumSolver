@@ -31,13 +31,36 @@
  */
 
 //TODO: Make iterationLimit a template parameter.
+template<typename T>
 class SecantSolver
 {
 	public:
 		SecantSolver(unsigned=25);
-		double solve(const Equation&, double=0.0, double=1.0);
+		double solve(const T&, double=0.0, double=1.0);
 	private:
 		unsigned iterationLimit;
 };
+
+template<typename T>
+SecantSolver<T>::SecantSolver(unsigned iterations):iterationLimit(iterations) {}
+
+template<typename T>
+double SecantSolver<T>::solve(const T& p, double second, double first)
+{
+	double lambda = first;
+	double firstEval = p(first);
+	if(firstEval > 0) return lambda;
+	double secondEval = p(second);
+	if(secondEval < 0) return second;
+	
+	for(unsigned i = 0; i < iterationLimit && (secondEval-firstEval > 1e-18 || secondEval-firstEval < -1e-18); ++i) {
+		lambda = first - firstEval*((second-first)/(secondEval-firstEval));
+		first = second;
+		firstEval = secondEval;
+		second = lambda;
+		secondEval = p(second);
+	}
+	return lambda;
+}
 
 #endif

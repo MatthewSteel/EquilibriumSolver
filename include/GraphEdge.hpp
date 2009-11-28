@@ -46,7 +46,7 @@ class GraphEdge
 		
 		void addFlow(double d) { flow += d; distance = distanceFunction(flow); }
 		double getFlow() const { return flow; }
-		std::auto_ptr<HornerPolynomial> costFunction() const { return std::auto_ptr<HornerPolynomial>(new HornerPolynomial(distanceFunction)); }
+		const HornerPolynomial* costFunction() const { return &distanceFunction; }
 
 		BushNode* toNode() { return to; }
 		BushNode* fromNode() { return from; }

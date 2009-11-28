@@ -24,6 +24,7 @@
 #include "SecantSolver.hpp"
 #include "NaiveAdder.hpp"
 #include <iostream>
+#include "ABAdder.hpp"
 
 using namespace std;
 
@@ -44,16 +45,14 @@ bool BushNode::moreSeparatePaths(BushNode*& minNode, BushNode*& maxNode)
 
 void BushNode::fixDifferentPaths(vector<BushEdge*>& minEdges, vector<BushEdge*>& maxEdges, double maxChange)
 {
-	HornerPolynomial hp;
+	ABAdder hp;
 
 	for(vector<BushEdge*>::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
-		hp -= *((*i)->costFunction());
+		hp -= ((*i)->costFunction());
 	}
 	
-	hp.multiplyX(-1);
-	
 	for(vector<BushEdge*>::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
-		hp += *((*i)->costFunction());
+		hp += ((*i)->costFunction());
 	}
 	/*
 	NOTE: The below may be faster, test on large instances.
@@ -68,10 +67,10 @@ void BushNode::fixDifferentPaths(vector<BushEdge*>& minEdges, vector<BushEdge*>&
 	}
 	*/
 	
-	SecantSolver solver;
+	SecantSolver<ABAdder> solver;
 	double newFlow = solver.solve(hp, maxChange, 0);//Change in flow
 	
-	if(newFlow == 0) return;
+	if(newFlow == 0) return;//No change
 //	double eval = hp(newFlow);
 
 //	if(eval < -1) newFlow = maxChange;
@@ -84,7 +83,7 @@ void BushNode::fixDifferentPaths(vector<BushEdge*>& minEdges, vector<BushEdge*>&
 	newFlow < 0. -0.1 is arbitrary, but it seems to distinguish the two cases
 	*/
 	
-//	if(newFlow > maxChange) newFlow = maxChange;
+	if(newFlow > maxChange) newFlow = maxChange;
 
 	for(vector<BushEdge*>::iterator i = minEdges.begin(); i != minEdges.end(); ++i)
 		(*i)->addFlow(newFlow);

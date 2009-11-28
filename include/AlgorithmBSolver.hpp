@@ -60,6 +60,8 @@ class AlgorithmBSolver
 		 */
 		void solve(unsigned iterationLimit = std::numeric_limits<unsigned>::max());
 
+		bool fixBushSets(std::list<Bush*>& fix, std::list<Bush*>& output, double average, bool whetherMove);
+		
 		/**
 		 * TODO
 		 */

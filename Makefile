@@ -2,7 +2,7 @@ EXE = EF
 
 OBJS = \
 	EquilibriumFlow.o HornerPolynomial.o BPRFunction.o \
-	Bush.o GraphEdge.o Origin.o SecantSolver.o BushNode.o ABGraph.o\
+	Bush.o GraphEdge.o Origin.o BushNode.o ABGraph.o\
 	AlgorithmBSolver.o GraphImporter.o
 
 OBJDIR = ./objs/

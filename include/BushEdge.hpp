@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <algorithm>
+#include <utility>
 
 #include "HornerPolynomial.hpp"
 #include "GraphEdge.hpp"
@@ -93,10 +94,8 @@ class BushEdge
 		 * flow. That is,
 		 *     costFunction(0) = realEdge.costFunction(realEdge.flow)
 		 */
-		std::auto_ptr<HornerPolynomial> costFunction() const {
-			std::auto_ptr<HornerPolynomial> cf = realEdge->costFunction();
-			cf->shiftX(realEdge->getFlow());
-			return cf;
+		std::pair<const HornerPolynomial*, double> costFunction() const {
+			return std::make_pair(realEdge->costFunction(), realEdge->getFlow());
 		}
 
 		/**

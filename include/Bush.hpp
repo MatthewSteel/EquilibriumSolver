@@ -39,7 +39,7 @@ class Bush
 		bool fix(double);
 		void printCrap() const;
 		int getOrigin() { return origin.getOrigin(); }
-		int giveCount() const;
+		int giveCount()/* const*/;
 		double allOrNothingCost();
 		double maxDifference();
 		~Bush();

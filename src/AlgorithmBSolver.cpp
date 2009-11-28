@@ -50,50 +50,35 @@ AlgorithmBSolver::AlgorithmBSolver(shared_ptr<InputGraph const> g, const TAPFram
 	}
 }
 
+bool AlgorithmBSolver::fixBushSets(list<Bush*>& fix, list<Bush*>& output, double average, bool whetherMove)
+{
+	vector<list<Bush*>::iterator> move;
+	for(list<Bush*>::iterator i = fix.begin(); i != fix.end(); ++i) {
+		if((*i)->fix(average) == whetherMove) move.push_back(i);
+	}
+	for(vector<list<Bush*>::iterator>::iterator i = move.begin(); i != move.end(); ++i) {
+		output.push_back(**i);
+		fix.erase(*i);
+	}//promote
+	return output.empty();
+}
+
 void AlgorithmBSolver::solve(unsigned iterationLimit)
 {
 	//TODO: Change this to something better than .25*avg (probably nth_element)
 	double sum = 0.0;
-	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i) {
+	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i)
 		sum += (*i)->maxDifference();
-	}
-	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i) {
+	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		sum += (*i)->maxDifference();
-	}
-	double average= 0.25*sum / (bushes.size() + lazyBushes.size());
-	unsigned count = 0;
-	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i) {
-		if((*i)->maxDifference() > average) ++count;
-	}
-	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i) {
-		if((*i)->maxDifference() > average) ++count;
-	}
 
-	cout << (count*100.0)/(bushes.size()+lazyBushes.size()) <<" " << average << " ";
-	
+	double average= 0.25*sum / (bushes.size() + lazyBushes.size());
+
 	for(unsigned iteration = 0; iteration < iterationLimit; ++iteration) {
-		vector<list<Bush*>::iterator> demoted;
-		for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i) {
-			if(!(*i)->fix(average)) demoted.push_back(i);
-		}
-		
-		for(vector<list<Bush*>::iterator>::iterator i = demoted.begin(); i != demoted.end(); ++i) {
-			lazyBushes.push_back(*(*i));
-			bushes.erase(*i);
-		}//demote
-		
 		if(iteration % 4 == 3) {
-			//Curiously, replacing this if statement with a for loop (to 3) above changes the results and running time.
-			vector<list<Bush*>::iterator> promoted;
-			for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i) {
-				if((*i)->fix(average)) promoted.push_back(i);
-			}
-			for(vector<list<Bush*>::iterator>::iterator i = promoted.begin(); i != promoted.end(); ++i) {
-				bushes.push_back(**i);
-				lazyBushes.erase(*i);
-			}//promote
-			if(bushes.empty()) break;
+			if(fixBushSets(lazyBushes, bushes, average, true)) return;
 		}
+		fixBushSets(bushes, lazyBushes, average, false);
 	}
 }
 
