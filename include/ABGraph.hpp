@@ -18,9 +18,10 @@
 */
 
 
-//An old bug in the input parsing library led to the Boost graph library was eating all my RAM.
-//I made this to get around it before noticing my mistake. Still, this seems to be faster,
-//still uses less RAM and it shaves 500KB off the executable size to boot.
+/* An old bug in the BGGraph input library led to the Boost graph library
+eating all of my RAM. I made this to get around it before noticing my mistake.
+Still, this seems to be faster, still uses less RAM and it makes the
+executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 
 #ifndef AB_GRAPH_HPP
 #define AB_GRAPH_HPP
@@ -37,10 +38,8 @@
 #include <boost/graph/adjacency_list.hpp>
 
 /**
- * Graph class when I misdiagnosed some ridiculous memory usage as a library
- * problem. Provides some nice, simple storage for Graph data, and has an
- * implementation of Dijkstra's algorithm that works reasonably well.
- * Resulted in some savings in my executable size, which is nice.
+ * Graph class providing some nice, simple storage for bush-specific data.
+ * Contains a reasonable Dijkstra's algorithm implementation.
  */
 
 class ABGraph
@@ -76,6 +75,7 @@ class ABGraph
 		 * Works well, and I'm satisfied with it.
 		 * The heap itself is a simple binary heap in a vector.
 		 */
+		//TODO: redo heap operations to use the STL
 		class DijkstraHeap
 		{
 			//Unfortunately, without the BGL I had to do this myself too...
@@ -85,6 +85,7 @@ class ABGraph
 				 * from a given node, with an in/out reference
 				 * parameter for node distances.
 				 */
+				//TODO: Fix order for equal distances
 				DijkstraHeap(unsigned, std::vector<double>&);
 
 				/**
@@ -116,8 +117,8 @@ class ABGraph
 		typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, TAPFramework::Intersection, TAPFramework::Road> InputGraph;
 	public:
 		/**
-		 * ABGraph constructor. Just allocates storage for the edges,
-		 * really.
+		 * ABGraph constructor. Does some minor heavy lifting, setting
+		 * up storage and edge inverses from the InputGraph.
 		 */
 		ABGraph(const InputGraph& g, const TAPFramework::NetworkProperties& p);
 
@@ -132,7 +133,7 @@ class ABGraph
 		}//Not worth doing a binary search because traffic networks are so sparse
 		
 		/**
-		 * Simple structure querying to get edges between two nodes
+		 * Simple structure querying to get edges between two nodes (const version)
 		 */
 		GraphEdge* const edge(unsigned from, unsigned to) const {
 			for(std::vector<GraphEdge*>::const_iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
@@ -173,6 +174,7 @@ class ABGraph
 		 *
 		 * "It's not horribly slow!"
 		 */
+		//TODO: Add param info
 		void dijkstra(unsigned origin, std::vector<double>& distances) {
 			DijkstraHeap d(origin, distances);
 			while(!d.empty()) {
@@ -194,8 +196,9 @@ class ABGraph
 		}
 		
 		/**
-		 *
+		 * Node storage access.
 		 */
+		//FIXME: Is this used? It seems kinda bad for it to be public, non-const.
 		std::vector<BushNode>& nodes() { return nodeStorage; }
 };
 

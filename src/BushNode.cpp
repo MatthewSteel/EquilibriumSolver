@@ -22,7 +22,6 @@
 
 #include <algorithm> //For min
 #include "SecantSolver.hpp"
-#include "NaiveAdder.hpp"
 #include <iostream>
 #include "ABAdder.hpp"
 
@@ -54,18 +53,6 @@ void BushNode::fixDifferentPaths(vector<BushEdge*>& minEdges, vector<BushEdge*>&
 	for(vector<BushEdge*>::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
 		hp += ((*i)->costFunction());
 	}
-	/*
-	NOTE: The below may be faster, test on large instances.
-	NaiveAdder<HornerPolynomial> hp;
-	for(vector<BushEdge*>::iterator i = minEdges.begin(); i != minEdges.end(); ++i)
-		hp += *((*i)->costFunction());
-	for(vector<BushEdge*>::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
-		HornerPolynomial h2 = *((*i)->costFunction());
-		h2.multiplyX(-1);
-		h2*=-1;
-		hp += h2;
-	}
-	*/
 	
 	SecantSolver<ABAdder> solver;
 	double newFlow = solver.solve(hp, maxChange, 0);//Change in flow

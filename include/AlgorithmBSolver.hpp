@@ -28,7 +28,6 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_traits.hpp>
 #include <boost/property_map.hpp>
-#include <boost/tuple/tuple.hpp> //For tie
 
 #include "GraphEdge.hpp"
 #include "Origin.hpp"

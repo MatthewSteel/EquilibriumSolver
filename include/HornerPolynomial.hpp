@@ -24,9 +24,7 @@
 #include <vector>
 #include <ostream>
 
-#include "Adder.hpp"
-
-class HornerPolynomial : public Adder<HornerPolynomial>
+class HornerPolynomial
 {
 	private:
 		std::vector<double> coeffs;

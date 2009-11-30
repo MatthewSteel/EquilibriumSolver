@@ -21,8 +21,6 @@
 #ifndef SECANT_SOLVER_HPP
 #define SECANT_SOLVER_HPP
 
-#include "Equation.hpp"
-
 /**
  * Simple little class used to find the roots of Equations by solving them
  * using the secant method. Tends to be faster than the bisection and
