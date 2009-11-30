@@ -31,11 +31,7 @@ executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 #include "BushNode.hpp"
 #include <iostream>
 
-#include "TAPFramework/Road.hpp"
-#include "TAPFramework/Intersection.hpp"
-#include "TAPFramework/NetworkProperties.hpp"
-
-#include <boost/graph/adjacency_list.hpp>
+#include "InputGraph.hpp"
 
 /**
  * Graph class providing some nice, simple storage for bush-specific data.
@@ -114,13 +110,13 @@ class ABGraph
 				std::vector<int> positions;
 				std::vector<double>& distances;
 		};
-		typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, TAPFramework::Intersection, TAPFramework::Road> InputGraph;
+//		typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, TAPFramework::Intersection, TAPFramework::Road> InputGraph;
 	public:
 		/**
 		 * ABGraph constructor. Does some minor heavy lifting, setting
 		 * up storage and edge inverses from the InputGraph.
 		 */
-		ABGraph(const InputGraph& g, const TAPFramework::NetworkProperties& p);
+		ABGraph(const InputGraph& g);
 
 		/**
 		 * Simple structure querying to get edges between two nodes

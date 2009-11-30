@@ -21,32 +21,27 @@
 #ifndef GRAPH_EDGE_HPP
 #define GRAPH_EDGE_HPP
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graph_traits.hpp>
-
 #include <ostream>
 #include <vector>
 #include <limits>
-#include "BPRFunction.hpp"
 #include "HornerPolynomial.hpp"
-#include "TAPFramework/Road.hpp"
-#include "TAPFramework/NetworkProperties.hpp"
+#include "InputGraph.hpp"
 
 class BushNode;
 
 class GraphEdge
 {
 	public:
-		GraphEdge(const TAPFramework::Road&, const TAPFramework::NetworkProperties&, BushNode&, BushNode&, unsigned);
+		GraphEdge(InputGraph::VDF, BushNode&, BushNode&);
 		GraphEdge(const GraphEdge& e);
-		GraphEdge(BushNode& from, BushNode& to, unsigned toId) : distance(std::numeric_limits<double>::infinity()), to(&to), inverse(0), flow(0), distanceFunction(HornerPolynomial(std::vector<double>(1,std::numeric_limits<double>::infinity()))), from(&from), toId(toId) {}
+		GraphEdge(BushNode& from, BushNode& to);
 		//Ugh, think distance needs to be public for BGL, will put in a request maybe.
 		
 		double distance;
 		
 		void addFlow(double d) { flow += d; distance = distanceFunction(flow); }
 		double getFlow() const { return flow; }
-		const HornerPolynomial* costFunction() const { return &distanceFunction; }
+		const InputGraph::VDF* costFunction() const { return &distanceFunction; }
 
 		BushNode* toNode() { return to; }
 		BushNode* fromNode() { return from; }
@@ -63,7 +58,7 @@ class GraphEdge
 		BushNode* to;
 		GraphEdge* inverse;
 		double flow;
-		HornerPolynomial distanceFunction;
+		InputGraph::VDF distanceFunction;
 		BushNode* from;
 		unsigned toId;
 };

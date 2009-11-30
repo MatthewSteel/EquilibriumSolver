@@ -19,16 +19,16 @@
 
 
 #include "GraphEdge.hpp"
+#include "BushNode.hpp"
 
-GraphEdge::GraphEdge(const TAPFramework::Road& i, const TAPFramework::NetworkProperties& p, BushNode& from, BushNode& to, unsigned toId) :
+GraphEdge::GraphEdge(InputGraph::VDF i, BushNode& from, BushNode& to) :
 	inverse(0),
 	flow (0),
-	distanceFunction(*BPRFunction(i.getBPRFunction()).costFunction()),
+	distanceFunction(i),
 	from(&from),
 	to(&to),
-	toId(toId)
+	toId(to.getId())
 {
-	distanceFunction += (p.getLengthCost()*i.getLength() + i.getToll()*p.getTollCost());
 	distance = distanceFunction(flow);
 }
 
@@ -41,3 +41,14 @@ GraphEdge::GraphEdge(const GraphEdge& e):
 		to(e.to),
 		toId(e.toId)
 {}
+
+GraphEdge::GraphEdge(BushNode& from, BushNode& to) :
+		distance(std::numeric_limits<double>::infinity()),
+		to(&to),
+		inverse(0),
+		flow(0),
+		distanceFunction(HornerPolynomial(std::vector<double>(1,std::numeric_limits<double>::infinity()))),
+		from(&from),
+		toId(to.getId())
+{}
+//Ugh, think distance needs to be public for BGL, will put in a request maybe.

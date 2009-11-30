@@ -1,54 +1,41 @@
 /*
-    Copyright 2008, 2009 Matthew Steel.
+Copyright 2008, 2009 Matthew Steel.
 
-    This file is part of EF.
+This file is part of EF.
 
-    EF is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesser General Public License as
-    published by the Free Software Foundation, either version 3 of
-    the License, or (at your option) any later version.
+EF is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as
+published by the Free Software Foundation, either version 3 of
+the License, or (at your option) any later version.
 
-    EF is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesser General Public License for more details.
+EF is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
-    License along with EF.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU Lesser General Public
+License along with EF.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "BarGeraImporter.hpp"
+#include "BarGeraBPRFunction.hpp"
+#include "InputGraph.hpp"
 
-#include "TAPFramework/GraphImporter.hpp"
-#include <iostream>
 #include <limits>
-#include <list>
-#include <utility>
-#include <cctype>
-#include "TAPFramework/NetworkProperties.hpp"
-#include "TAPFramework/Intersection.hpp"
-#include "TAPFramework/Road.hpp"
+#include <vector>
+#include <cctype>//isspace()
 
 using namespace std;
-using namespace boost;
-using namespace TAPFramework;
 
-typedef boost::adjacency_list<
-	boost::vecS,
-	boost::vecS,
-	boost::bidirectionalS,
-	TAPFramework::Intersection,
-	TAPFramework::Road> Graph;
-typedef Graph::vertex_descriptor Vertex;
-
-shared_ptr<Graph> GraphImporter::readInGraph(istream& graphStream, istream& originStream)
+void BarGeraImporter::readInGraph(InputGraph& graph, std::istream& networkStream, std::istream& tripsStream) throw (string)
 {
-	shared_ptr<Graph> graph;
-	readInNetwork(graph, graphStream);
-	readInTrips(graph, originStream);
-	return graph;
+	if(!networkStream) throw "Network file does not exist";
+	if(!tripsStream) throw "Trips file does not exist";
+	readInNetwork(graph, networkStream);
+	readInTrips(graph, tripsStream);
 }
 
-void GraphImporter::readInNetwork(shared_ptr<Graph>& graph, istream& is)
+void BarGeraImporter::readInNetwork(InputGraph& graph, std::istream& is)
 {
 	/*
 	TODO: format is:
@@ -61,31 +48,25 @@ void GraphImporter::readInNetwork(shared_ptr<Graph>& graph, istream& is)
 	
 	We should also deal with comments properly.
 	*/
-	if (!is) {
-		cerr << "Guys, bad times with the network file" << endl;
-		return;
-	}
 	skipComments(is);
 	is.ignore(numeric_limits<streamsize>::max(),'\n');//Skip #zones - not important
-
+	
 	skipComments(is);
 	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to #nodes
 	is >> nodes;//Read in #nodes
-
 	skipComments(is);
 	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to First Through Node
 	unsigned firstThroughNode;
 	is >> firstThroughNode;
 	zones = firstThroughNode - 1;
-	
+	graph.setNodes(nodes+zones);
 	skipComments(is);
 	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to #edges
 	unsigned arcs;
 	is >> arcs;
-
+	
 	endMetadata(is);
 	
-	graph.reset(new Graph(nodes+zones));
 	while (arcs --> 0) {
 		skipComments(is);
 		unsigned to, from;
@@ -94,24 +75,19 @@ void GraphImporter::readInNetwork(shared_ptr<Graph>& graph, istream& is)
 		if(to <= zones) to += nodes;
 		
 		double capacity, length, speed, toll, zeroFlowTime, alpha;
-		unsigned beta;
+		double beta;
 		
 		is >> capacity >> length >> zeroFlowTime >> alpha >> beta >> speed >> toll;
 		//Don't use speed, type?
-		Road r(BPRFunction(zeroFlowTime, capacity, alpha, beta), length, toll);
-		//cout << "From: " << from << ", To: " << to << " " << zeroFlowTime << " " << capacity << " " << alpha << " " << beta << endl;
-		add_edge(from-1, to-1, r, *graph);
-
+		BarGeraBPRFunction func(zeroFlowTime, capacity, alpha, beta, length*distanceCost+toll*tollCost);
+		graph.addEdge(from-1, to-1, func.costFunction());
+		
 		is.ignore(numeric_limits<streamsize>::max(),';');//Skip to end of row
 	}
 }
 
-void GraphImporter::readInTrips(boost::shared_ptr<Graph>& graph, istream& is)
+void BarGeraImporter::readInTrips(InputGraph& graph, std::istream& is)
 {
-	if (!is) {
-		cerr << "Guys, bad times with the trips file" << endl;
-		return;
-	}
 	skipComments(is);
 	is.ignore(numeric_limits<streamsize>::max(),'>');//Skip to #zones
 	unsigned z;
@@ -123,7 +99,7 @@ void GraphImporter::readInTrips(boost::shared_ptr<Graph>& graph, istream& is)
 	endMetadata(is);
 	
 	int currentNode = -1;
-	list<pair<unsigned, double> > currentDestinations;
+	vector<pair<unsigned, double> > currentDestinations;
 	while(true) {
 		skipComments(is);
 		if(!is.good()) break;
@@ -131,7 +107,8 @@ void GraphImporter::readInTrips(boost::shared_ptr<Graph>& graph, istream& is)
 			is.ignore(6);
 			//New origin. Add the old one to the graph if it has destinations.
 			if (!currentDestinations.empty()) {
-				(*graph)[vertex(currentNode-1, *graph)].destinations = currentDestinations;
+				for(vector<pair<unsigned,double> >::iterator i = currentDestinations.begin(); i != currentDestinations.end(); ++i)
+					graph.addDemand(currentNode-1, i->first, i->second);
 				currentDestinations.clear();
 			}
 			is >> currentNode;
@@ -145,16 +122,17 @@ void GraphImporter::readInTrips(boost::shared_ptr<Graph>& graph, istream& is)
 			is.ignore(numeric_limits<streamsize>::max(),':');
 			is >> amount;
 			if (amount > 0 && static_cast<int>(toNode) != currentNode)
-				currentDestinations.push_back(pair<unsigned, double>(vertex(toNode-1, *graph), amount));
+				currentDestinations.push_back(pair<unsigned, double>(toNode-1, amount));
 			is.ignore(numeric_limits<streamsize>::max(),';');
 		}
 	}
 	if (!currentDestinations.empty()) {
-		(*graph)[vertex(currentNode-1, *graph)].destinations = currentDestinations;
+		for(vector<pair<unsigned,double> >::iterator i = currentDestinations.begin(); i != currentDestinations.end(); ++i)
+			graph.addDemand(currentNode-1, i->first, i->second);
 	}
 }
 
-void GraphImporter::skipComments(std::istream& i)
+void BarGeraImporter::skipComments(std::istream& i)
 {
 	bool haveComment = true, haveSpace = true;
 	if(i.bad()) return;
@@ -174,7 +152,7 @@ void GraphImporter::skipComments(std::istream& i)
 	}
 }
 
-void GraphImporter::endMetadata(std::istream& is)
+void BarGeraImporter::endMetadata(std::istream& is)
 {
 	//Sometimes there is misc metadata. Ugh. Skip that stuff.
 	while (true) {

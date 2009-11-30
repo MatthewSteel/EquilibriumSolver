@@ -22,20 +22,28 @@
 
 #include <memory>
 #include <algorithm> //For max
-#include <boost/graph/topological_sort.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <iostream>
+#include <map>
 
 using namespace std;
-using namespace boost;
 
 class BushEdge;
 
-AlgorithmBSolver::AlgorithmBSolver(shared_ptr<InputGraph const> g, const TAPFramework::NetworkProperties& p): v(0), graph(*g, p), tempStore(num_vertices(*g))
+AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(g.numNodes())
 {
 	//NOTE: A little heavy work in the graph ctor in the init list.
 	//Read ODData out of graph
-	for(unsigned i = 0; i < num_vertices(*g); ++i) {
+	
+	for(map<unsigned,map<unsigned, double> >::const_iterator i = g.demand().begin(); i != g.demand().end(); ++i) {
+		unsigned index = i->first;
+		Origin o(index);
+		ODData.push_back(o);
+		for(map<unsigned,double>::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
+			ODData.back().addDestination(j->first, j->second);
+		}
+	}
+	
+/*	for(unsigned i = 0; i < num_vertices(*g); ++i) {
 		const list<pair<unsigned, double> >& l = (*g)[vertex(i, *g)].dests();
 		if(!l.empty()) {
 			Origin o(i);
@@ -43,7 +51,7 @@ AlgorithmBSolver::AlgorithmBSolver(shared_ptr<InputGraph const> g, const TAPFram
 			for(list<pair<unsigned, double> >::const_iterator j = l.begin(); j != l.end(); ++j)
 				ODData.back().addDestination(j->first, j->second);
 		}
-	}
+	}*/
 	//Set up a bush for every origin. Most of the work is in here - Dijkstra over the graph in the Bush ctor.
 	for(list<Origin>::iterator i = ODData.begin(); i != ODData.end(); ++i) {
 		bushes.push_back(new Bush(*i, graph, tempStore));
@@ -82,13 +90,13 @@ void AlgorithmBSolver::solve(unsigned iterationLimit)
 	}
 }
 
-void AlgorithmBSolver::outputAnswer(shared_ptr<InputGraph> inGraph) const
+/*void AlgorithmBSolver::outputAnswer(shared_ptr<InputGraph> inGraph) const
 {
 	/*
 	NOTE: Relies on the first inGraph.numEdges of our edges lining up with
 	theirs. We have imaginary edges in our graph structure, so this may break
 	in the future? If so, we can always just work it by vertex pairs.
-	*/
+	* /
 	InputGraph::edge_iterator outBegin, outEnd;
 	tie(outBegin, outEnd) = edges(*inGraph);
 	
@@ -99,7 +107,7 @@ void AlgorithmBSolver::outputAnswer(shared_ptr<InputGraph> inGraph) const
 			(*inGraph)[*i].updateFlow(e->getFlow());
 		}
 	}
-}
+}*/
 
 double AlgorithmBSolver::relativeGap()
 {
@@ -124,7 +132,6 @@ int AlgorithmBSolver::getCount() const
 
 AlgorithmBSolver::~AlgorithmBSolver()
 {
-	if(v) delete v;
 	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
 		delete *i;
 	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)

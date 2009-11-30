@@ -29,8 +29,6 @@
 #include <vector>
 #include <utility>
 
-#include <boost/graph/adjacency_list.hpp>
-
 class Bush
 {
 	public:

@@ -19,9 +19,8 @@
 
 
 #include "ABGraph.hpp"
-
+#include <iostream>
 using namespace std;
-using namespace boost;
 
 ABGraph::DijkstraHeap::DijkstraHeap(unsigned origin, vector<double>& distances) : positions(distances.size(), -1), distances(distances)
 {
@@ -96,33 +95,43 @@ void ABGraph::DijkstraHeap::maybePush(unsigned id, vector<GraphEdge*>& neighbour
 //	cout << endl;
 }
 
-ABGraph::ABGraph(const InputGraph& g, const TAPFramework::NetworkProperties& p) : edgeStructure(num_vertices(g)), numberOfEdges(0)
+ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdges(0)
 {
 	//Set up contiguous node storage
-	nodeStorage.reserve(num_vertices(g));
-	for(unsigned i = 0; i < num_vertices(g); ++i) {
+	nodeStorage.reserve(g.numNodes());
+	for(unsigned i = 0; i < g.numNodes(); ++i) {
 		nodeStorage.push_back(BushNode(i));
 	}
+	typedef map<unsigned,InputGraph::VDF> EdgeMap;
+	typedef map<unsigned,EdgeMap> GraphMap;
 	
 	//Set up contiguous edge storage
 	//Count edges first (so we don't get a vector reallocation when we add them in)
-	InputGraph::edge_iterator inBegin, inEnd;
-	tie(inBegin, inEnd) = edges(g);
-	for(InputGraph::edge_iterator j = inBegin; j != inEnd; ++j) {
-		++numberOfEdges;
-		pair<graph_traits<InputGraph>::edge_descriptor, bool> e = boost::edge(target(*j,g), source(*j,g), g);
-		if(!e.second) {//Imaginary arc setup
+	for(GraphMap::const_iterator i = g.graph().begin(); i != g.graph().end(); ++i) {
+		unsigned fromNode = i->first;
+		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
 			++numberOfEdges;
+			unsigned toNode = j->first;
+			GraphMap::const_iterator k = g.graph().find(toNode);
+			if(k == g.graph().end() || k->second.find(fromNode)==k->second.end()) {
+				++numberOfEdges;
+			}
+			//Reverse edge not found
 		}
 	}
 	edgeStorage.reserve(numberOfEdges);
 
 	//Mirror the basic graph structure (with imaginary back-arcs when we need them):
-	for(InputGraph::edge_iterator j = inBegin; j != inEnd; ++j) {
-		add(GraphEdge(g[*j], p, nodeStorage.at(source(*j, g)), nodeStorage.at(target(*j, g)), target(*j,g)));
-		pair<graph_traits<InputGraph>::edge_descriptor, bool> e = boost::edge(target(*j,g), source(*j,g), g);
-		if(!e.second) {//Imaginary arc setup
-			add(GraphEdge(nodeStorage.at(target(*j, g)), nodeStorage.at(source(*j, g)), source(*j,g)));
+	for(GraphMap::const_iterator i = g.graph().begin(); i != g.graph().end(); ++i) {
+		unsigned fromNode = i->first;
+		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
+			unsigned toNode = j->first;
+			add(GraphEdge(j->second, nodeStorage.at(fromNode), nodeStorage.at(toNode)));
+			GraphMap::const_iterator k = g.graph().find(toNode);
+			if(k == g.graph().end() || k->second.find(fromNode)==k->second.end()) {
+				//Imaginary arc setup
+				add(GraphEdge(nodeStorage.at(toNode), nodeStorage.at(fromNode)));
+			}
 		}
 	}
 
@@ -130,5 +139,4 @@ ABGraph::ABGraph(const InputGraph& g, const TAPFramework::NetworkProperties& p) 
 	for(vector<GraphEdge>::iterator i = edgeStorage.begin(); i != edgeStorage.end(); ++i) {
 		edge(i->toNode()->getId(), i->fromNode()->getId())->setInverse(&(*i));
 	}
-
 }

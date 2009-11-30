@@ -24,19 +24,12 @@
 #include <list>
 #include <limits>
 #include <ostream>
-#include <boost/shared_ptr.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graph_traits.hpp>
-#include <boost/property_map.hpp>
 
 #include "GraphEdge.hpp"
 #include "Origin.hpp"
 #include "Bush.hpp"
 #include "ABGraph.hpp"
-
-#include "TAPFramework/Road.hpp"
-#include "TAPFramework/Intersection.hpp"
-#include "TAPFramework/NetworkProperties.hpp"
+#include "InputGraph.hpp"
 
 /**
  * Solver for the Traffic Assignment Problem using an algorithm like (but not
@@ -45,14 +38,12 @@
  */
 class AlgorithmBSolver
 {
-	typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, TAPFramework::Intersection, TAPFramework::Road> InputGraph;
-	
 	
 	public:
 		/**
 		 * TODO
 		 */
-		AlgorithmBSolver(boost::shared_ptr<InputGraph const> g, const TAPFramework::NetworkProperties& p = TAPFramework::NetworkProperties());
+		AlgorithmBSolver(const InputGraph& g);
 		
 		/**
 		 * TODO
@@ -61,10 +52,10 @@ class AlgorithmBSolver
 
 		bool fixBushSets(std::list<Bush*>& fix, std::list<Bush*>& output, double average, bool whetherMove);
 		
-		/**
-		 * TODO
-		 */
-		void outputAnswer(boost::shared_ptr<InputGraph>) const;
+//		/**
+//		 * TODO
+//		 */
+//		void outputAnswer(boost::shared_ptr<InputGraph>) const;
 
 		void printBushes() {
 			for(std::list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i) {
@@ -111,8 +102,5 @@ class AlgorithmBSolver
 		//A premature optimisation, but probably an optimisation.
 		//So long as we clean it up, I guess...
 		std::vector<std::pair<double, unsigned> > tempStore;
-		
-		//Node data:
-		std::vector<BushNode> *v;
 };
 #endif

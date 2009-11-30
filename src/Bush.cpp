@@ -21,13 +21,11 @@
 #include "Bush.hpp"
 #include <algorithm>
 #include <functional>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <iostream>
 #include <limits>
 #include <cstdlib>
 
 using namespace std;
-using namespace boost;
 
 Bush::Bush(const Origin& o, ABGraph& g, vector<pair<double,unsigned> >& tempStore) :
 origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore)
@@ -91,6 +89,7 @@ void Bush::sendInitialFlows()
 
 void Bush::printCrap() const
 {
+	//Not really used, exists for debugging purposes if I really break something.
 	cout << "Printing  crap:" <<endl;
 	cout << "Out arcs:"<<endl;
 	for(vector<BushNode>::const_iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {

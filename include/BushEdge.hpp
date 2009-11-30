@@ -27,6 +27,7 @@
 
 #include "HornerPolynomial.hpp"
 #include "GraphEdge.hpp"
+#include <tr1/functional>
 
 class BushNode;
 
@@ -94,7 +95,7 @@ class BushEdge
 		 * flow. That is,
 		 *     costFunction(0) = realEdge.costFunction(realEdge.flow)
 		 */
-		std::pair<const HornerPolynomial*, double> costFunction() const {
+		std::pair<const std::tr1::function<double(double)>*, double> costFunction() const {
 			return std::make_pair(realEdge->costFunction(), realEdge->getFlow());
 		}
 

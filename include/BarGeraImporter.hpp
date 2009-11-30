@@ -18,21 +18,11 @@
 */
 
 
-//Exists to shorten compile times in FrankWolfeSolver.cpp.
-//Also helps code re-use later on.
+#ifndef BAR_GERA_IMPORTER_HPP
+#define BAR_GERA_IMPORTER_HPP
 
-#ifndef GRAPH_IMPORTER_HPP
-#define GRAPH_IMPORTER_HPP
-
-#include <boost/shared_ptr.hpp>
-#include <boost/graph/adjacency_list.hpp>
+#include "InputGraph.hpp"
 #include <istream>
-
-namespace TAPFramework {
-
-class Intersection;
-class Road;
-class NetworkProperties;
 
 /**
  * A class to facilitate the importation of network files.
@@ -40,26 +30,28 @@ class NetworkProperties;
  * Bar-Gera's page at http://www.bgu.ac.il/~bargera/tntp/
  */
 
-//TODO: Clean this up some
-class GraphImporter {
-
-	typedef boost::adjacency_list<
-		boost::vecS,
-		boost::vecS,
-		boost::bidirectionalS,
-		TAPFramework::Intersection,
-		TAPFramework::Road> Graph;
+class BarGeraImporter {
 
 	public:
-		boost::shared_ptr<Graph> readInGraph(std::istream&, std::istream&);
-		void readInNetwork(boost::shared_ptr<Graph>&, std::istream&);
-		void readInTrips(boost::shared_ptr<Graph>&, std::istream&);
+		BarGeraImporter(double distanceCost, double tollCost) :
+			distanceCost(distanceCost), tollCost(tollCost) {}
+		
+		void readInGraph(InputGraph& graph, std::istream& networkFile, std::istream& tripsFile) throw (std::string);
 	private:
+		
+		void readInNetwork(InputGraph& graph, std::istream& networkFile);
+		
+		void readInTrips(InputGraph& graph, std::istream& tripsFile);
+		
+		
 		void skipComments(std::istream&);
+		
 		void endMetadata(std::istream&);
+		
+		double distanceCost;
+		double tollCost;
 		unsigned nodes, zones;
 };
 
-}
 
 #endif
