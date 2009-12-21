@@ -58,9 +58,9 @@ class GraphEdge
 		BushNode* to;
 		GraphEdge* inverse;
 		double flow;
-		InputGraph::VDF distanceFunction;
+		InputGraph::VDF distanceFunction;//Dang, 32 bytes in GCC!?
 		BushNode* from;
 		unsigned toId;
-};
+};//80 bytes all up. 3.2MB in Chicago regional. Beats my cache to hell.
 
 #endif

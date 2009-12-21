@@ -144,11 +144,9 @@ void Bush::buildTrees()
 	sharedNodes[origin.getOrigin()].setDistance(0.0);
 
 	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin(); i < topologicalOrdering.end(); ++i) {
+		BushNode &v = sharedNodes[*i];
 		vector<BushEdge>& outEdges = bush[*i];
-		if(!outEdges.empty()) {
-			BushNode* v = outEdges.front().fromNode();
-			v->updateOutDistances(outEdges);
-		}
+		v.updateOutDistances(outEdges);
 	}
 }//Resets min, max distances, builds min/max trees.
 
@@ -156,8 +154,9 @@ bool Bush::updateEdges()
 {
 	bool same = true;
 	
-	for(vector<vector<BushEdge> >::iterator i = bush.begin(); i != bush.end(); ++i) {
-		if(!i->empty() && !updateEdges(*i, i->front().fromNode()->maxDist(), i->front().fromNode()->getId())) {
+	unsigned fromNode = 0;
+	for(vector<vector<BushEdge> >::iterator i = bush.begin(); i != bush.end(); ++i, ++fromNode) {
+		if(!i->empty() && !updateEdges(*i, sharedNodes[fromNode].maxDist(), fromNode)) {
 			same = false;
 		}
 	}

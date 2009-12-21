@@ -39,6 +39,12 @@ class Bush
 		int giveCount()/* const*/;
 		double allOrNothingCost();
 		double maxDifference();
+		void doThings(unsigned& edges, unsigned& capacity) const {
+			for(std::vector<std::vector<BushEdge> >::const_iterator i = bush.begin(); i != bush.end(); ++i) {
+				edges += i->size();
+				capacity += i->capacity();
+			}
+		}
 		~Bush();
 	private:
 		bool updateEdges();

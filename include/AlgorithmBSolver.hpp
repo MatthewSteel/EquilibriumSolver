@@ -85,8 +85,8 @@ class AlgorithmBSolver
 		 * savings at the expense of some time if we'd like.)
 		 */
 		int getCount() const;
-		double relativeGap() ;
-		
+		double relativeGap();
+		void wasteTime() const;
 		~AlgorithmBSolver();
 		//NOTE: Have we remembered to clean up nonexistant edges?
 	private:

@@ -9,7 +9,7 @@ OBJDIR = ./objs/
 
 INCL = -I./include
 
-VPATH = src:src/TAPFramework:objs
+VPATH = src:objs
 
 # C++ Compiler command
 CXX = g++
@@ -17,7 +17,7 @@ CXX = g++
 CXXFLAGS = \
 	-g -pipe -pedantic-errors -Wimplicit -Wparentheses -Wreturn-type\
 	-Wcast-qual -Wall -Wpointer-arith -Wwrite-strings -Wconversion -O3\
-	-march=native -pg
+	-march=native
 
 # additional C++ Compiler options for linking
 

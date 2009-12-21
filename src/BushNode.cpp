@@ -60,8 +60,10 @@ void BushNode::fixDifferentPaths(vector<BushEdge*>& minEdges, vector<BushEdge*>&
 	if(newFlow == 0) return;//No change
 //	double eval = hp(newFlow);
 
-//	if(eval < -1) newFlow = maxChange;
-	//cout << maxChange << ',' << newFlow << endl;
+/*	if(hp(newFlow) < -1) {
+		cout << maxChange << ',' << newFlow << endl;
+		newFlow = maxChange;
+	}
 	/*
 	HACK: Because the equation may have no roots, we sometimes get silly
 	results from it. Unfortunately, when we consider the different distinct
@@ -71,7 +73,8 @@ void BushNode::fixDifferentPaths(vector<BushEdge*>& minEdges, vector<BushEdge*>&
 	*/
 	
 	if(newFlow > maxChange) newFlow = maxChange;
-
+	//This is done in the solver now?
+	
 	for(vector<BushEdge*>::iterator i = minEdges.begin(); i != minEdges.end(); ++i)
 		(*i)->addFlow(newFlow);
 	for(vector<BushEdge*>::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i)

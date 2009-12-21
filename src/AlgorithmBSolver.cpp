@@ -60,6 +60,7 @@ AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(g.n
 
 bool AlgorithmBSolver::fixBushSets(list<Bush*>& fix, list<Bush*>& output, double average, bool whetherMove)
 {
+	//TODO: Replace with std::partition and list.splice when we get lambdas (C++0x).
 	vector<list<Bush*>::iterator> move;
 	for(list<Bush*>::iterator i = fix.begin(); i != fix.end(); ++i) {
 		if((*i)->fix(average) == whetherMove) move.push_back(i);
@@ -128,6 +129,17 @@ int AlgorithmBSolver::getCount() const
 	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		count += (*i)->giveCount();
 	return count;
+}
+
+void AlgorithmBSolver::wasteTime() const
+{
+	unsigned edges = 0;
+	unsigned capacity = 0;
+	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
+		(*i)->doThings(edges, capacity);
+	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
+		(*i)->doThings(edges, capacity);
+	cout << edges << ' ' << capacity << endl;
 }
 
 AlgorithmBSolver::~AlgorithmBSolver()

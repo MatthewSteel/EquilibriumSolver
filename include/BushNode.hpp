@@ -62,8 +62,8 @@ class BushNode
 //Also try threading min/max? Could gain 30 odd % if we're lucky, but they only run for 3ms on our biggest graph...
 inline void BushNode::updateOutDistances(std::vector<BushEdge>& outEdges)
 {
-	std::vector<BushEdge>::iterator i = outEdges.begin();
-	do {
+	
+	for(std::vector<BushEdge>::iterator i = outEdges.begin(); i != outEdges.end(); ++i) {
 		//Function only gets called when !outEdges.empty()
 		BushEdge& outEdge = (*i);
 		BushNode* toNode = outEdge.toNode();
@@ -84,8 +84,7 @@ inline void BushNode::updateOutDistances(std::vector<BushEdge>& outEdges)
 				toNode->maxPredecessor = &outEdge;
 			}
 		}
-		++i;
-	} while (i != outEdges.end());
+	}
 }
 
 #endif
