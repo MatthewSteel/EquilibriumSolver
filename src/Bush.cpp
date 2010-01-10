@@ -58,10 +58,16 @@ void Bush::setUpGraph(ABGraph& g)
 	strictly positive lengths, though.
 	*/
 	for(vector<GraphEdge>::iterator iter = begin; iter != end; ++iter) {
-		if(distanceMap.at(iter->toNode()->getId()) != numeric_limits<double>::infinity()&&distanceMap.at(iter->fromNode()->getId()) != numeric_limits<double>::infinity() && (distanceMap.at(iter->fromNode()->getId()) < distanceMap.at(iter->toNode()->getId()) ||
-			(distanceMap.at(iter->fromNode()->getId()) == distanceMap.at(iter->toNode()->getId()) &&
-			iter->fromNode()->getId() < iter->toNode()->getId()))) {
-			bush.at(iter->fromNode()->getId()).push_back(BushEdge(&(*iter)));
+		unsigned toId = iter->toNode()->getId();
+		double toDistance = distanceMap.at(toId);
+		if(toDistance == numeric_limits<double>::infinity()) continue;
+		
+		unsigned fromId = iter->fromNode()->getId();
+		double fromDistance = distanceMap.at(fromId);
+
+		if(fromDistance != numeric_limits<double>::infinity() && (fromDistance < toDistance ||
+			(fromDistance == toDistance && fromId < toId))) {
+			bush.at(fromId).push_back(BushEdge(&(*iter)));
 		}
 	}
 

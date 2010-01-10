@@ -41,8 +41,10 @@ executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 class ABGraph
 {
 	private:
-		std::vector<std::vector<GraphEdge*> > edgeStructure;
-		std::vector<GraphEdge> edgeStorage;
+		std::vector<std::vector<unsigned> > edgeStructure;
+		std::vector<ForwardGraphEdge> forwardStorage;
+		std::vector<BackwardGraphEdge> backwardStorage;
+		
 		std::vector<BushNode> nodeStorage;
 		//Better idea: Store these things in a row, as now, but ordered specially so we can store structure as 2 iterators.
 		unsigned numberOfEdges;
@@ -53,11 +55,13 @@ class ABGraph
 		 * Adds an edge. To-node and from-node are retrieved from the
 		 * parameter's data if they're necessary.
 		 */
-		void add(GraphEdge e) {
-			edgeStorage.push_back(e);
-			this->edgeStructure[e.fromNode()->getId()].push_back(&edgeStorage.back());
+		void add(const ForwardGraphEdge & fe, const BackwardGraphEdge & be) {
+			forwardStorage.push_back(fe);
+			backwardStorage.push_back(be);
+			
+			edgeStructure[be.fromNode()->getId()].push_back(edgeStorage.size());
 		}
-
+		
 		/**
 		 * A simple heap for Dijkstra's algorithm. Functionality will
 		 * be replaced soon with the STL's push_heap, pop_heap and
@@ -121,22 +125,19 @@ class ABGraph
 		/**
 		 * Simple structure querying to get edges between two nodes
 		 */
-		GraphEdge* edge(unsigned from, unsigned to) {
-			for(std::vector<GraphEdge*>::iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
-				if((*i)->getToId() == to) return (*i);
+		unsigned edge(unsigned from, unsigned to) const {
+			for(std::vector<unsigned>::const_iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
+				if(backwardStorage[*i].getToId() == to) return (*i);
 			}
-			return 0;
+			throw "Edge does not exist";
 		}//Not worth doing a binary search because traffic networks are so sparse
 		
-		/**
-		 * Simple structure querying to get edges between two nodes (const version)
-		 */
-		GraphEdge* const edge(unsigned from, unsigned to) const {
-			for(std::vector<GraphEdge*>::const_iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
-				if((*i)->getToId() == to) return (*i);
-			}
-			return 0;
-		}//Not worth doing a binary search because traffic networks are so sparse
+		BushEdge& forwardEdge(unsigned index) {
+			return forwardStorage[index];
+		}
+		BushEdge& backwardEdge(unsigned index) {
+			return backwardStorage[index];
+		}
 		
 		/**
 		 * Gets the number of vertices in the graph.
@@ -162,20 +163,18 @@ class ABGraph
 		std::vector<GraphEdge>::iterator end() {
 			return edgeStorage.end();
 		}
-		//NOTE: Hope we never have to deal with 0 node graphs? Size 0 vectors don't have a back().
-		//NOTE: Possibly buggy even without considering 0 node graphs. Have a look over this some time.
 		
 		/**
 		 * Our lovely Dijkstra's algorithm. You love it. I love it.
 		 *
 		 * "It's not horribly slow!"
 		 */
-		//TODO: Add param info
+		//TODO: Add param info, have it return a good topo order (visited).
 		void dijkstra(unsigned origin, std::vector<double>& distances) {
 			DijkstraHeap d(origin, distances);
 			while(!d.empty()) {
 				unsigned top = d.pop();
-				d.maybePush(top, edgeStructure.at(top));
+				d.maybePush(top, edgeStructure.at(top), backwardStorage);
 			}
 			
 		}

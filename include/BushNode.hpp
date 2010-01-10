@@ -30,13 +30,13 @@ class BushNode
 {
 	public:
 		BushNode(unsigned);
-		void equilibriate();
+		void equilibriate(ABGraph&);
 		void updateOutDistances(std::vector<BushEdge>&);
 		double minDist() const { return minDistance; }
 		double maxDist() const { return maxDistance; }
 		unsigned getId() const { return id; }
 		double getDifference() const { return (maxDistance-minDistance); }
-		BushEdge* getMinPredecessor() { return minPredecessor; }
+		BushNode* getMinPredecessor() { return minPredecessor; }
 		void reset() {
 			realFlow = false;
 			maxDistance = std::numeric_limits<double>::infinity();

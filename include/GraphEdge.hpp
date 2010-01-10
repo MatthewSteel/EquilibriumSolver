@@ -29,21 +29,44 @@
 
 class BushNode;
 
-class GraphEdge
+/*
+Split edges for cache gains. Should bring GraphEdges from 4.32MB total in CR's
+BuildTrees to ~1.5MB
+*/
+
+class ForwardGraphEdge
+{
+	friend class BackwardGraphEdge;
+	public:
+		ForwardGraphEdge(InputGraph::VDF, BushNode& to);
+		ForwardGraphEdge(const ForwardGraphEdge & e);
+		ForwardGraphEdge(BushNode& to);
+
+		unsigned getToId() { return to->getId(); }
+		double distance() { return _distance; }
+		double getFlow() const { return flow; }
+		BushNode* toNode() { return to; }
+	private:
+		void addFlow(double d) { flow += d; _distance = distanceFunction(flow); }
+		
+		BushNode* to;
+		double _distance;
+		double flow;
+};
+
+class BackwardGraphEdge
 {
 	public:
-		GraphEdge(InputGraph::VDF, BushNode&, BushNode&);
-		GraphEdge(const GraphEdge& e);
-		GraphEdge(BushNode& from, BushNode& to);
-		//Ugh, think distance needs to be public for BGL, will put in a request maybe.
+		BackwardGraphEdge(InputGraph::VDF, BushNode& from);
+		BackwardGraphEdge(const BackwardGraphEdge& e);
+		BackwardGraphEdge(BushNode& from);
+
+		//Forward to appropriate handler
+		void addFlow(double d) { forwardData.addFlow(d); }
+		double getFlow() const { return forwardData.getFlow(); }
 		
-		double distance;
-		
-		void addFlow(double d) { flow += d; distance = distanceFunction(flow); }
-		double getFlow() const { return flow; }
 		const InputGraph::VDF* costFunction() const { return &distanceFunction; }
 
-		BushNode* toNode() { return to; }
 		BushNode* fromNode() { return from; }
 		unsigned getToId() { return toId; }
 
@@ -55,12 +78,11 @@ class GraphEdge
 		void setInverse(GraphEdge* ge) { inverse = ge; }
 		GraphEdge* getInverse() { return inverse; }
 	private:
-		BushNode* to;
+		ForwardGraphEdge & forwardData;
 		GraphEdge* inverse;
-		double flow;
 		InputGraph::VDF distanceFunction;//Dang, 32 bytes in GCC!?
 		BushNode* from;
 		unsigned toId;
-};//80 bytes all up. 3.2MB in Chicago regional. Beats my cache to hell.
+};
 
 #endif

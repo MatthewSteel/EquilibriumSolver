@@ -43,9 +43,6 @@ void ABGraph::DijkstraHeap::bubbleDown(unsigned i)
 {
 
 	while(true) {
-		//if(heap.size() > 2*i+1) cout << " against " << heap.at(2*i+1) << " distance " << distances.at(heap.at(2*i+1));
-		//if(heap.size() > 2*i+2) cout << " and " << heap.at(2*i+2) << " distance " << distances.at(heap.at(2*i+2));
-		//cout <<endl;
 		if(heap.size() <= 2*i+1) return;
 		
 		unsigned m = 2*i + ((heap.size()==2*i+2 || distances.at(heap.at(2*i+1)) < distances.at(heap.at(2*i+2)))? 1:2);
@@ -60,11 +57,7 @@ void ABGraph::DijkstraHeap::bubbleDown(unsigned i)
 
 void ABGraph::DijkstraHeap::bubbleUp(unsigned pos)
 {
-//	cout << "bubbling pos " << pos << " up, distance "<<distances.at(heap.at(pos));
-//	if(pos > 0) { cout << " against " << distances.at(heap.at((pos-1)/2)); }
-//	cout << endl;
 	while(pos > 0 && distances.at(heap.at((pos-1)/2)) > distances.at(heap.at(pos))) {
-//		cout <<"pos up to " << (pos-1)/2<<endl;
 		positions.at(heap.at((pos-1)/2)) = pos;
 		positions.at(heap.at(pos)) = (pos-1)/2;
 		swap(heap.at((pos-1)/2), heap.at(pos));
@@ -76,7 +69,6 @@ void ABGraph::DijkstraHeap::maybePush(unsigned id, vector<GraphEdge*>& neighbour
 {
 	for(vector<GraphEdge*>::iterator i = neighbours.begin(); i != neighbours.end(); ++i) {
 		int toId = (*i)->getToId();
-//		cout << "Adding " << toId << ", distance " << i->distance + distances.at(id)<<endl;
 		int& position = positions.at(toId);
 		if(position == -1) {
 			//New to the list
@@ -90,9 +82,6 @@ void ABGraph::DijkstraHeap::maybePush(unsigned id, vector<GraphEdge*>& neighbour
 			bubbleDown(position);
 		}
 	}
-//	for(int i = 0; i < heap.size(); ++i)
-//		cout << heap[i] << "("<<distances[heap[i]]<<") ";
-//	cout << endl;
 }
 
 ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdges(0)

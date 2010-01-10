@@ -36,8 +36,8 @@ bool BushNode::moreSeparatePaths(BushNode*& minNode, BushNode*& maxNode)
 	while(true) {
 		if(minNode->minDistance == minNode->maxDistance) return false;//Reached root
 		else if(minNode->minPredecessor == maxNode->maxPredecessor) {
-			minNode = minNode->minPredecessor->fromNode();
-			maxNode = maxNode->maxPredecessor->fromNode();
+			minNode = minNode->minPredecessor;
+			maxNode = maxNode->maxPredecessor;
 		} else return true;//New segments to equilibriate
 	}
 }//Ignore min/max paths that coincide
@@ -81,41 +81,47 @@ void BushNode::fixDifferentPaths(vector<BushEdge*>& minEdges, vector<BushEdge*>&
 		(*i)->addFlow(-newFlow);
 }
 
-void BushNode::equilibriate()
+void BushNode::equilibriate(ABGraph& graph)
 {
 	BushNode* minNode = this;
 	BushNode* maxNode = this;
 	/*
 	NOTE: It is very important to equilibriate the different distinct segments
-	of the min/max paths separately, or we get worst-case behaviour like the
-	Ford-Fulkerson algorithm
+	of the min/max paths separately, or we get worst-case behaviour a'la
+	Ford-Fulkerson
 	*/
 	while (true) {
 		vector<BushEdge*> minEdges;
 		vector<BushEdge*> maxEdges;
 		double maxChange = numeric_limits<double>::infinity();
 		
+		
 		if(!moreSeparatePaths(minNode, maxNode)) { return; }
 		//Indicates we're done or sets node positions to start of next segment
+		
 		do { //Trace paths back, adding arcs to lists
-			if(minNode->minPredecessor->fromNode()->minDistance == maxNode->maxPredecessor->fromNode()->maxDistance) {
+			if(minNode->minPredecessor->minDistance == maxNode->maxPredecessor->maxDistance) {
 				/*
 				NOTE: If we didn't have this, the elseif could occur and set minNode
 				to the root (and keeping maxNode not root), and we segfault (or worse)
 				when we test its predecessor next time around
 				*/
-				minEdges.push_back(minNode->minPredecessor);
-				minNode = minNode->minPredecessor->fromNode();
-				maxChange = min(maxChange, maxNode->maxPredecessor->flow());
-				maxEdges.push_back(maxNode->maxPredecessor);
-				maxNode = maxNode->maxPredecessor->fromNode();
+				minEdges.push_back(minEdge);
+				minNode = minNode->minPredecessor;
+				maxChange = min(maxChange, maxEdge->flow());
+				maxEdges.push_back(maxEdge);
+				maxNode = maxNode->maxPredecessor;
+				BushEdge* maxEdge=(/*get prev on maxNode*/);
+				BushEdge* minEdge=(/*get prev on minNode*/);
 			} else if(minNode->minPredecessor->fromNode()->minDistance >= maxNode->maxPredecessor->fromNode()->maxDistance) {
-				minEdges.push_back(minNode->minPredecessor);
-				minNode = minNode->minPredecessor->fromNode();
+				minEdges.push_back(minEdge);
+				BushEdge* minEdge=(/*get prev on minNode*/);
+				minNode = minNode->minPredecessor;
 			} else {
-				maxChange = min(maxChange, maxNode->maxPredecessor->flow());
-				maxEdges.push_back(maxNode->maxPredecessor);
-				maxNode = maxNode->maxPredecessor->fromNode();
+				maxChange = min(maxChange, maxEdge->flow());
+				maxEdges.push_back(maxEdge);
+				maxNode = maxNode->maxPredecessor;
+				BushEdge* maxEdge=(/*get prev on maxNode*/);
 			}
 		} while(minNode->id != maxNode->id);
 		if(maxChange > 1e-12) fixDifferentPaths(minEdges, maxEdges, maxChange);

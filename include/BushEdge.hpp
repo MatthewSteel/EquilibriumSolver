@@ -41,7 +41,7 @@ class BushEdge
 		/**
 		 * TODO
 		 */
-		BushEdge(GraphEdge* arc) :
+		BushEdge(ForwardGraphEdge* arc) :
 			realEdge(arc), ownFlow(0) {}
 
 		/**
@@ -103,14 +103,14 @@ class BushEdge
 		 * Returns the edge on the underlying graph from this edge's
 		 * to-node to this edge's from-node.
 		 */
-		const GraphEdge* getInverse() const { return realEdge->getInverse(); }
+		const ForwardGraphEdge* getInverse() const { return realEdge->getInverse(); }
 
 		/**
 		 * TODO
 		 */
 		void addFlow(double d) { realEdge->addFlow(d); ownFlow += d; }
 	private:
-		GraphEdge* realEdge;
+		ForwardGraphEdge* realEdge;
 		double ownFlow;
 };
 
