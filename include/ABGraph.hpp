@@ -59,7 +59,7 @@ class ABGraph
 			forwardStorage.push_back(fe);
 			backwardStorage.push_back(be);
 			
-			edgeStructure[be.fromNode()->getId()].push_back(edgeStorage.size());
+			edgeStructure[be.fromNode()->getId()].push_back(forwardStorage.size()-1);
 		}
 		
 		/**
@@ -152,16 +152,23 @@ class ABGraph
 		 * Returns an EdgeIterator pointing to the "first" out-edge
 		 * of the "first" vertex of the ABGraph.
 		 */
-		std::vector<GraphEdge>::iterator begin() {
-			return edgeStorage.begin();
+		std::vector<BackwardGraphEdge>::iterator begin() {
+			return backwardStorage.begin();
 		}
 
 		/**
 		 * Returns an EdgeIterator pointing just past the "last"
 		 * out-edge of the "last" vertex of the ABGraph.
 		 */
-		std::vector<GraphEdge>::iterator end() {
-			return edgeStorage.end();
+		std::vector<BackwardGraphEdge>::iterator end() {
+			return backwardStorage.end();
+		}
+		
+		BackwardGraphEdge* backward(const ForwardGraphEdge* f) {
+			return backwardStorage[f-&forwardStorage[0]];
+		}
+		ForwardGraphEdge* forward(const BackwardGraphEdge* b) {
+			return forwardStorage[b-&backwardStorage[0]];
 		}
 		
 		/**

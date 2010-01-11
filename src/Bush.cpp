@@ -28,7 +28,7 @@
 using namespace std;
 
 Bush::Bush(const Origin& o, ABGraph& g, vector<pair<double,unsigned> >& tempStore) :
-origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore)
+origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), graph(g)
 {
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
@@ -45,7 +45,7 @@ void Bush::setUpGraph(ABGraph& g)
 
 	g.dijkstra(origin.getOrigin(), distanceMap);
 
-	vector<GraphEdge>::iterator begin = g.begin(), end=g.end();
+	vector<BackwardGraphEdge>::iterator begin = g.begin(), end=g.end();
 	/*
 	Partial order to ensure acyclicity: Order on distance, then node id if
 	we get a tie. Remembering, some of these arcs will be imaginary, and
@@ -57,17 +57,16 @@ void Bush::setUpGraph(ABGraph& g)
 	connectivity. Breaks Philadelphia. Bar-Gera (2002) says arcs must have
 	strictly positive lengths, though.
 	*/
-	for(vector<GraphEdge>::iterator iter = begin; iter != end; ++iter) {
-		unsigned toId = iter->toNode()->getId();
+	for(vector<BackwardGraphEdge>::iterator iter = begin; iter != end; ++iter) {
+		unsigned toId = iter->getToId();
 		double toDistance = distanceMap.at(toId);
-		if(toDistance == numeric_limits<double>::infinity()) continue;
-		
 		unsigned fromId = iter->fromNode()->getId();
 		double fromDistance = distanceMap.at(fromId);
 
-		if(fromDistance != numeric_limits<double>::infinity() && (fromDistance < toDistance ||
-			(fromDistance == toDistance && fromId < toId))) {
-			bush.at(fromId).push_back(BushEdge(&(*iter)));
+		if(toDistance + fromDistance == numeric_limits<double>::infinity()) continue;
+		
+		if(fromDistance < toDistance || (fromDistance == toDistance && fromId < toId)) {
+			bush.at(fromId).push_back(BushEdge(ABGraph.forward(&(*iter))));
 		}
 	}
 
@@ -163,6 +162,7 @@ bool Bush::updateEdges()
 	unsigned fromNode = 0;
 	for(vector<vector<BushEdge> >::iterator i = bush.begin(); i != bush.end(); ++i, ++fromNode) {
 		if(!i->empty() && !updateEdges(*i, sharedNodes[fromNode].maxDist(), fromNode)) {
+			//TODO: remove the !i->empty()?
 			same = false;
 		}
 	}

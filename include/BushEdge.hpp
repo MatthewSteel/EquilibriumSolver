@@ -87,7 +87,7 @@ class BushEdge
 		 * If the bush-specific flow is not zero the solution loses
 		 * feasibility.
 		 */
-		void swapDirection() { realEdge = realEdge->getInverse(); }
+		void swapDirection(ABGraph &g) { realEdge = g.backward(realEdge)->getInverse(); }
 
 		/**
 		 * Gives the cost function of the BushEdge's corresponding edge

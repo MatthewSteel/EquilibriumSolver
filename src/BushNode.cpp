@@ -91,8 +91,8 @@ void BushNode::equilibriate(ABGraph& graph)
 	Ford-Fulkerson
 	*/
 	while (true) {
-		vector<BushEdge*> minEdges;
-		vector<BushEdge*> maxEdges;
+		vector<pair<BushEdge*, BackwardGraphEdge> > minEdges;
+		vector<pair<BushEdge*, BackwardGraphEdge> > maxEdges;
 		double maxChange = numeric_limits<double>::infinity();
 		
 		

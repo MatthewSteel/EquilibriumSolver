@@ -75,8 +75,8 @@ class BackwardGraphEdge
 			return o;
 		}
 
-		void setInverse(GraphEdge* ge) { inverse = ge; }
-		GraphEdge* getInverse() { return inverse; }
+		void setInverse(ForwardGraphEdge* ge) { inverse = ge; }
+		ForwardGraphEdge* getInverse() { return inverse; }
 	private:
 		ForwardGraphEdge & forwardData;
 		GraphEdge* inverse;

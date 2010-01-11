@@ -66,6 +66,8 @@ class Bush
 		//Shared with other bushes so we don't deallocate/reallocate data uselessly between bush iterations
 		std::vector<BushNode>& sharedNodes;
 		std::vector<std::pair<double, unsigned> >& tempStore;//Used in topo sort, don't want to waste the alloc/dealloc time.
+		
+		ABGraph& graph;
 };
 
 //Inlined because we call this once per node per iteration, and spend 35% of our time in here.
@@ -90,7 +92,7 @@ inline bool Bush::updateEdges(std::vector<BushEdge>& outEdges, double maxDist, u
 		
 		BushEdge& edge = (*i);
 		unsigned toId = edge.toNodeId();
-		edge.swapDirection();
+		edge.swapDirection(graph);
 		bush[toId].push_back(edge);
 	}
 	outEdges.erase(changeBegin,outEdges.end());
