@@ -30,14 +30,14 @@ using namespace std;
 BushNode::BushNode(unsigned id) : minDistance(numeric_limits<double>::infinity()), maxDistance(numeric_limits<double>::infinity()),  id(id), realFlow(false)
 {}
 
-bool BushNode::moreSeparatePaths(BushNode*& minNode, BushNode*& maxNode)
+bool BushNode::moreSeparatePaths(BushNode*& minNode, BushNode*& maxNode, ABGraph &graph)
 {
 	//Precondition: minNode == maxNode?
 	while(true) {
 		if(minNode->minDistance == minNode->maxDistance) return false;//Reached root
 		else if(minNode->minPredecessor == maxNode->maxPredecessor) {
-			minNode = minNode->minPredecessor;
-			maxNode = maxNode->maxPredecessor;
+			minNode = graph.backward(minNode->minPredecessor)->fromNode();
+			maxNode = graph.backward(maxNode->maxPredecessor)->fromNode();
 		} else return true;//New segments to equilibriate
 	}
 }//Ignore min/max paths that coincide
@@ -96,8 +96,11 @@ void BushNode::equilibriate(ABGraph& graph)
 		double maxChange = numeric_limits<double>::infinity();
 		
 		
-		if(!moreSeparatePaths(minNode, maxNode)) { return; }
+		if(!moreSeparatePaths(minNode, maxNode, graph)) return;
 		//Indicates we're done or sets node positions to start of next segment
+		
+		BackwardGraphEdge *minMinPred = graph.backward(minNode->minPredecessor);
+		BackwardGraphEdge *maxMaxPred = graph.backward(maxNode->maxPredecessor);
 		
 		do { //Trace paths back, adding arcs to lists
 			if(minNode->minPredecessor->minDistance == maxNode->maxPredecessor->maxDistance) {

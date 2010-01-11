@@ -67,6 +67,7 @@ void Bush::setUpGraph(ABGraph& g)
 		
 		if(fromDistance < toDistance || (fromDistance == toDistance && fromId < toId)) {
 			bush.at(fromId).push_back(BushEdge(ABGraph.forward(&(*iter))));
+			//Turning edges around will make this a little prettier.
 		}
 	}
 
