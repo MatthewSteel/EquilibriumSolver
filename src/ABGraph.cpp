@@ -20,69 +20,10 @@
 
 #include "ABGraph.hpp"
 #include <iostream>
+#include <queue>
+#include <utility>
+
 using namespace std;
-
-ABGraph::DijkstraHeap::DijkstraHeap(unsigned origin, vector<double>& distances) : positions(distances.size(), -1), distances(distances)
-{
-	distances.at(origin) = 0;
-	positions.at(origin) = 0;
-	heap.push_back(origin);
-}
-
-unsigned ABGraph::DijkstraHeap::pop()
-{
-	unsigned top = heap.front();
-	swap(heap.front(), heap.back());
-	positions.at(heap.front()) = 0;
-	heap.erase(heap.end()-1);
-	bubbleDown(0);
-	return top;
-}
-
-void ABGraph::DijkstraHeap::bubbleDown(unsigned i)
-{
-
-	while(true) {
-		if(heap.size() <= 2*i+1) return;
-		
-		unsigned m = 2*i + ((heap.size()==2*i+2 || distances.at(heap.at(2*i+1)) < distances.at(heap.at(2*i+2)))? 1:2);
-		if(distances.at(heap.at(m)) >= distances.at(heap.at(i))) return;
-		positions.at(heap.at(m)) = i;
-		positions.at(heap.at(i)) = m;
-		swap(heap.at(i), heap.at(m));
-		i = m;
-		//cout << "pos to " << m << endl;
-	}
-}
-
-void ABGraph::DijkstraHeap::bubbleUp(unsigned pos)
-{
-	while(pos > 0 && distances.at(heap.at((pos-1)/2)) > distances.at(heap.at(pos))) {
-		positions.at(heap.at((pos-1)/2)) = pos;
-		positions.at(heap.at(pos)) = (pos-1)/2;
-		swap(heap.at((pos-1)/2), heap.at(pos));
-		pos = (pos-1)/2;
-	}
-}
-
-void ABGraph::DijkstraHeap::maybePush(unsigned id, vector<GraphEdge*>& neighbours)
-{
-	for(vector<GraphEdge*>::iterator i = neighbours.begin(); i != neighbours.end(); ++i) {
-		int toId = (*i)->getToId();
-		int& position = positions.at(toId);
-		if(position == -1) {
-			//New to the list
-			position = heap.size();
-			heap.push_back(toId);
-			distances.at(toId) = (*i)->distance + distances.at(id);
-			bubbleUp(heap.size()-1);
-		} else if (distances.at(toId) > (*i)->distance + distances.at(id)) {
-			distances.at(toId) = (*i)->distance + distances.at(id);
-			bubbleUp(position);
-			bubbleDown(position);
-		}
-	}
-}
 
 ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdges(0)
 {
@@ -108,24 +49,49 @@ ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdg
 			//Reverse edge not found
 		}
 	}
-	edgeStorage.reserve(numberOfEdges);
+	forwardStorage.reserve(numberOfEdges);
+	backwardStorage.reserve(numberOfEdges);
 
 	//Mirror the basic graph structure (with imaginary back-arcs when we need them):
 	for(GraphMap::const_iterator i = g.graph().begin(); i != g.graph().end(); ++i) {
 		unsigned fromNode = i->first;
 		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
 			unsigned toNode = j->first;
-			add(GraphEdge(j->second, nodeStorage.at(fromNode), nodeStorage.at(toNode)));
+			addEdge(fromNode, toNode, j->second);
 			GraphMap::const_iterator k = g.graph().find(toNode);
 			if(k == g.graph().end() || k->second.find(fromNode)==k->second.end()) {
 				//Imaginary arc setup
-				add(GraphEdge(nodeStorage.at(toNode), nodeStorage.at(fromNode)));
+				addEdge(toNode, fromNode);
 			}
 		}
 	}
 
 	//Set up edge inverses
-	for(vector<GraphEdge>::iterator i = edgeStorage.begin(); i != edgeStorage.end(); ++i) {
-		edge(i->toNode()->getId(), i->fromNode()->getId())->setInverse(&(*i));
+	for(vector<BackwardGraphEdge>::iterator i = backwardStorage.begin(); i != backwardStorage.end(); ++i) {
+		unsigned fromNodeId = i->fromNode()->getId();
+		unsigned toNodeId = forward(&(*i))->toNode()->getId();
+		i->setInverse(&forwardStorage[edge(toNodeId, fromNodeId)]);
+	}
+}
+
+void ABGraph::dijkstra(unsigned origin, vector<double>& distances)
+{
+	//TODO: Give a topological order so we can deal with equidistant nodes later.
+	for(vector<double>::iterator i = distances.begin(); i != distances.end(); ++i) {
+		*i = -1.0;//Ugly, dumb.
+	}
+	priority_queue<pair<double, unsigned> > queue;
+	queue.push(make_pair(0, origin));
+	while(!queue.empty()) {
+		double distance = queue.top().first;
+		unsigned id = queue.top().second;
+		if(distances[id] == -1.0) {
+			distances[id] = -distance;
+			for(vector<unsigned>::iterator i = edgeStructure[id].begin(); i != edgeStructure[id].end(); ++i) {
+				ForwardGraphEdge& fge = forwardStorage[*i];
+				queue.push(make_pair(distance - fge.distance(), fge.getToId()));
+			}
+		}
+		queue.pop();
 	}
 }

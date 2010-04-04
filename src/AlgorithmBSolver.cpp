@@ -63,6 +63,7 @@ bool AlgorithmBSolver::fixBushSets(list<Bush*>& fix, list<Bush*>& output, double
 	//TODO: Replace with std::partition and list.splice when we get lambdas (C++0x).
 	vector<list<Bush*>::iterator> move;
 	for(list<Bush*>::iterator i = fix.begin(); i != fix.end(); ++i) {
+//		cout << "Fixing a bush" << endl;
 		if((*i)->fix(average) == whetherMove) move.push_back(i);
 	}
 	for(vector<list<Bush*>::iterator>::iterator i = move.begin(); i != move.end(); ++i) {
@@ -75,6 +76,9 @@ bool AlgorithmBSolver::fixBushSets(list<Bush*>& fix, list<Bush*>& output, double
 void AlgorithmBSolver::solve(unsigned iterationLimit)
 {
 	//TODO: Change this to something better than .25*avg (probably nth_element)
+	
+//	cout << "Entering solve" << endl;
+	
 	double sum = 0.0;
 	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i)
 		sum += (*i)->maxDifference();
@@ -83,7 +87,11 @@ void AlgorithmBSolver::solve(unsigned iterationLimit)
 
 	double average= 0.25*sum / (bushes.size() + lazyBushes.size());
 
+	
+//	cout << "Here we go." << endl;
+	
 	for(unsigned iteration = 0; iteration < iterationLimit; ++iteration) {
+//		cout << "Entering iteration" << endl;
 		if(iteration % 4 == 3) {
 			if(fixBushSets(lazyBushes, bushes, average, true)) return;
 		}
@@ -118,6 +126,7 @@ double AlgorithmBSolver::relativeGap()
 		lowerBound += (*i)->allOrNothingCost();
 	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		lowerBound += (*i)->allOrNothingCost();
+	//cout << "Upper: " << upperBound << ", Lower: " << lowerBound << endl;
 	return 1-lowerBound/upperBound;
 }
 
@@ -129,17 +138,6 @@ int AlgorithmBSolver::getCount() const
 	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		count += (*i)->giveCount();
 	return count;
-}
-
-void AlgorithmBSolver::wasteTime() const
-{
-	unsigned edges = 0;
-	unsigned capacity = 0;
-	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
-		(*i)->doThings(edges, capacity);
-	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
-		(*i)->doThings(edges, capacity);
-	cout << edges << ' ' << capacity << endl;
 }
 
 AlgorithmBSolver::~AlgorithmBSolver()
