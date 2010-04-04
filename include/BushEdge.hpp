@@ -29,8 +29,9 @@
 #include "GraphEdge.hpp"
 #include <tr1/functional>
 
+class ABGraph;
 class BushNode;
-
+class ForwardGraphEdge;
 /**
  * A bush-specific edge structure that only exists so we can know the
  * bush-specific flow on the edge. Lots of handy functions, though...
@@ -53,7 +54,7 @@ class BushEdge
 		/**
 		 * TODO
 		 */
-		double length() const { return realEdge->distance; }
+		double length() const { return realEdge->distance(); }
 
 		/**
 		 * TODO
@@ -65,11 +66,6 @@ class BushEdge
 		 * TODO
 		 */
 		double flow() const { return ownFlow; }
-
-		/**
-		 * TODO
-		 */
-		BushNode* fromNode() const { return realEdge->fromNode(); }
 
 		/**
 		 * TODO
@@ -87,28 +83,14 @@ class BushEdge
 		 * If the bush-specific flow is not zero the solution loses
 		 * feasibility.
 		 */
-		void swapDirection(ABGraph &g) { realEdge = g.backward(realEdge)->getInverse(); }
-
-		/**
-		 * Gives the cost function of the BushEdge's corresponding edge
-		 * in the underlying graph "shifted" by the edge's current
-		 * flow. That is,
-		 *     costFunction(0) = realEdge.costFunction(realEdge.flow)
-		 */
-		std::pair<const std::tr1::function<double(double)>*, double> costFunction() const {
-			return std::make_pair(realEdge->costFunction(), realEdge->getFlow());
-		}
-
-		/**
-		 * Returns the edge on the underlying graph from this edge's
-		 * to-node to this edge's from-node.
-		 */
-		const ForwardGraphEdge* getInverse() const { return realEdge->getInverse(); }
+		void swapDirection(ABGraph &g);
 
 		/**
 		 * TODO
 		 */
-		void addFlow(double d) { realEdge->addFlow(d); ownFlow += d; }
+		void addFlow(double d) { ownFlow += d; }//TODO: Add flow to BGE?
+		
+		ForwardGraphEdge* underlyingEdge() { return realEdge; }
 	private:
 		ForwardGraphEdge* realEdge;
 		double ownFlow;

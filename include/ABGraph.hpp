@@ -29,13 +29,13 @@ executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 #include <vector>
 #include "GraphEdge.hpp"
 #include "BushNode.hpp"
+#include "HornerPolynomial.hpp"
 #include <iostream>
-
 #include "InputGraph.hpp"
 
 /**
  * Graph class providing some nice, simple storage for bush-specific data.
- * Contains a reasonable Dijkstra's algorithm implementation.
+ * Contains a simple Dijkstra's algorithm implementation.
  */
 
 class ABGraph
@@ -55,66 +55,13 @@ class ABGraph
 		 * Adds an edge. To-node and from-node are retrieved from the
 		 * parameter's data if they're necessary.
 		 */
-		void add(const ForwardGraphEdge & fe, const BackwardGraphEdge & be) {
-			forwardStorage.push_back(fe);
-			backwardStorage.push_back(be);
+		void addEdge(unsigned from, unsigned to, InputGraph::VDF func = HornerPolynomial(std::vector<double>(1, std::numeric_limits<double>::infinity()))) {
+			forwardStorage.push_back(ForwardGraphEdge(func, &nodeStorage.at(to)));
+			backwardStorage.push_back(BackwardGraphEdge(func, &nodeStorage.at(from), &forwardStorage.back()));
 			
-			edgeStructure[be.fromNode()->getId()].push_back(forwardStorage.size()-1);
+			edgeStructure.at(from).push_back(forwardStorage.size()-1);
 		}
-		
-		/**
-		 * A simple heap for Dijkstra's algorithm. Functionality will
-		 * be replaced soon with the STL's push_heap, pop_heap and
-		 * make_heap (forgot about that, used some of my old, messy
-		 * code instead. Whoops.)
-		 * Does some nice things by remembering where nodes are in
-		 * the heap and moving them up when we revisit them, (storing
-		 * a heap of nodes instead of a heap of node-observations).
-		 * Of course, this doesn't really save us too much, especially
-		 * when traffic networks are so sparse, but que sera sera...
-		 * Works well, and I'm satisfied with it.
-		 * The heap itself is a simple binary heap in a vector.
-		 */
-		//TODO: redo heap operations to use the STL
-		class DijkstraHeap
-		{
-			//Unfortunately, without the BGL I had to do this myself too...
-			public:
-				/**
-				 * Constructs a DijkstraHeap for graph search
-				 * from a given node, with an in/out reference
-				 * parameter for node distances.
-				 */
-				//TODO: Fix order for equal distances
-				DijkstraHeap(unsigned, std::vector<double>&);
 
-				/**
-				 * Removes and returns the id of the node at
-				 * the top of the heap.
-				 */
-				unsigned pop();
-
-				/**
-				 * Determines whether the heap is empty. (That
-				 * is, determines whether Dijkstra's algorithm
-				 * has terminated.)
-				 */
-				bool empty() { return heap.empty(); }
-
-				/**
-				 * Given a vector of edges from a node and its
-				 * id, pushes/updates the heap positions of
-				 * the edges' to-nodes if prudent.
-				 */
-				void maybePush(unsigned, std::vector<GraphEdge*>&);
-			private:
-				void bubbleUp(unsigned);
-				void bubbleDown(unsigned);
-				std::vector<unsigned> heap;
-				std::vector<int> positions;
-				std::vector<double>& distances;
-		};
-//		typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, TAPFramework::Intersection, TAPFramework::Road> InputGraph;
 	public:
 		/**
 		 * ABGraph constructor. Does some minor heavy lifting, setting
@@ -132,10 +79,10 @@ class ABGraph
 			throw "Edge does not exist";
 		}//Not worth doing a binary search because traffic networks are so sparse
 		
-		BushEdge& forwardEdge(unsigned index) {
+		ForwardGraphEdge& forwardEdge(unsigned index) {
 			return forwardStorage[index];
 		}
-		BushEdge& backwardEdge(unsigned index) {
+		BackwardGraphEdge& backwardEdge(unsigned index) {
 			return backwardStorage[index];
 		}
 		
@@ -165,34 +112,24 @@ class ABGraph
 		}
 		
 		BackwardGraphEdge* backward(const ForwardGraphEdge* f) {
-			return backwardStorage[f-&forwardStorage[0]];
+			return &backwardStorage[f-&forwardStorage[0]];
 		}
 		ForwardGraphEdge* forward(const BackwardGraphEdge* b) {
-			return forwardStorage[b-&backwardStorage[0]];
+			return &forwardStorage[b-&backwardStorage[0]];
 		}
 		
-		/**
-		 * Our lovely Dijkstra's algorithm. You love it. I love it.
-		 *
-		 * "It's not horribly slow!"
-		 */
 		//TODO: Add param info, have it return a good topo order (visited).
-		void dijkstra(unsigned origin, std::vector<double>& distances) {
-			DijkstraHeap d(origin, distances);
-			while(!d.empty()) {
-				unsigned top = d.pop();
-				d.maybePush(top, edgeStructure.at(top), backwardStorage);
-			}
-			
-		}
+		void dijkstra(unsigned origin, std::vector<double>& distances);
 		
 		/**
 		 * Returns the total user travel time in the current solution.
 		 */
 		double currentCost() const {
 			double cost = 0.0;
-			for(std::vector<GraphEdge>::const_iterator i = edgeStorage.begin(); i != edgeStorage.end(); ++i)
-				if(i->getFlow() != 0) cost += i->getFlow()*i->distance;
+			std::vector<ForwardGraphEdge>::const_iterator i = forwardStorage.begin();
+			std::vector<BackwardGraphEdge>::const_iterator j = backwardStorage.begin();
+			for(; i != forwardStorage.end(); ++i, ++j)
+				if(j->getFlow() != 0) cost += j->getFlow()*i->distance();
 				//0 flow could mean imaginary arc, in which case 0*infinity = NaN.
 			return cost;
 		}
@@ -202,6 +139,14 @@ class ABGraph
 		 */
 		//FIXME: Is this used? It seems kinda bad for it to be public, non-const.
 		std::vector<BushNode>& nodes() { return nodeStorage; }
+		
+		friend std::ostream& operator<<(std::ostream& o, ABGraph & g) {
+			for(std::vector<BackwardGraphEdge>::iterator i = g.backwardStorage.begin(); i != g.backwardStorage.end(); ++i) {
+				o << *i << std::endl;
+			}
+			return o;
+		}
+		
 };
 
 #endif

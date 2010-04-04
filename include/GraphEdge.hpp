@@ -24,7 +24,6 @@
 #include <ostream>
 #include <vector>
 #include <limits>
-#include "HornerPolynomial.hpp"
 #include "InputGraph.hpp"
 
 class BushNode;
@@ -36,53 +35,45 @@ BuildTrees to ~1.5MB
 
 class ForwardGraphEdge
 {
-	friend class BackwardGraphEdge;
 	public:
-		ForwardGraphEdge(InputGraph::VDF, BushNode& to);
+		ForwardGraphEdge(InputGraph::VDF, BushNode *to);
 		ForwardGraphEdge(const ForwardGraphEdge & e);
-		ForwardGraphEdge(BushNode& to);
 
-		unsigned getToId() { return to->getId(); }
-		double distance() { return _distance; }
-		double getFlow() const { return flow; }
+		unsigned getToId();
+		double distance() const { return _distance; }
+		void setDistance(double d) { _distance = d; }
 		BushNode* toNode() { return to; }
 	private:
-		void addFlow(double d) { flow += d; _distance = distanceFunction(flow); }
-		
+		friend class BackwardGraphEdge;
 		BushNode* to;
 		double _distance;
-		double flow;
 };
 
 class BackwardGraphEdge
 {
 	public:
-		BackwardGraphEdge(InputGraph::VDF, BushNode& from);
+		BackwardGraphEdge(InputGraph::VDF, BushNode* from, ForwardGraphEdge* inverse);
 		BackwardGraphEdge(const BackwardGraphEdge& e);
-		BackwardGraphEdge(BushNode& from);
-
-		//Forward to appropriate handler
-		void addFlow(double d) { forwardData.addFlow(d); }
-		double getFlow() const { return forwardData.getFlow(); }
 		
 		const InputGraph::VDF* costFunction() const { return &distanceFunction; }
 
 		BushNode* fromNode() { return from; }
-		unsigned getToId() { return toId; }
-
-		friend std::ostream& operator<<(std::ostream& o, GraphEdge& e) {
-			o << "EdgeStuff(flow:"<< e.flow << ",func:" << e.distanceFunction << ", cost:"<<e.distance<<")";
-			return o;
-		}
+		unsigned getToId() const { return toId; }
 
 		void setInverse(ForwardGraphEdge* ge) { inverse = ge; }
 		ForwardGraphEdge* getInverse() { return inverse; }
+		void addFlow(double d) {
+			flow += d;
+		}//TODO: add dist to FGE?
+		double getFlow() const { return flow; }
+		friend std::ostream& operator<<(std::ostream& o, BackwardGraphEdge& e);
 	private:
-		ForwardGraphEdge & forwardData;
-		GraphEdge* inverse;
+		
+		ForwardGraphEdge* inverse;
 		InputGraph::VDF distanceFunction;//Dang, 32 bytes in GCC!?
 		BushNode* from;
 		unsigned toId;
+		double flow;
 };
 
 #endif

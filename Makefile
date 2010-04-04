@@ -3,7 +3,7 @@ EXE = EF
 OBJS = \
 	EquilibriumFlow.o HornerPolynomial.o Bush.o\
 	GraphEdge.o Origin.o BushNode.o ABGraph.o\
-	AlgorithmBSolver.o BarGeraImporter.o
+	AlgorithmBSolver.o BarGeraImporter.o BushEdge.o
 
 OBJDIR = ./objs/
 
@@ -17,7 +17,7 @@ CXX = g++
 CXXFLAGS = \
 	-g -pipe -pedantic-errors -Wimplicit -Wparentheses -Wreturn-type\
 	-Wcast-qual -Wall -Wpointer-arith -Wwrite-strings -Wconversion -O3\
-	-march=native
+	-march=native -pg
 
 # additional C++ Compiler options for linking
 

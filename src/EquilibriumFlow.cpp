@@ -56,8 +56,15 @@ void general(const char* netString, const char* tripString, double distanceFacto
 	}
 	cout << time << ' ' << thisGap << endl;
 //	cout << abs << endl;
-	abs.wasteTime();
 }
+
+class func {
+	public:
+		func(double first, double second) : first(first), second(second) {}
+		double operator()(double d) { return d*second + first; }
+	private:
+		double first, second;
+};
 
 int main (int argc, char **argv)
 {
@@ -68,4 +75,20 @@ int main (int argc, char **argv)
 //	general("networks/Anaheim_net.txt", "networks/Anaheim_trips.txt");
 //	general("networks/ChicagoRegional_net.txt", "networks/ChicagoRegional_trips.txt", 0.25, 0.1, 0.15);
 //	general("networks/Philadelphia_network.txt", "networks/Philadelphia_trips.txt", 0.0, 0.055, 1e-4);//Known BUG: Doesn't quite work just yet.
+/*
+	InputGraph g;
+	g.setNodes(5);
+	g.addEdge(0, 1, func(0.5,0));
+	g.addEdge(0, 2, func(1.5,0));
+	g.addEdge(0, 3, func(2.5,0));
+	g.addEdge(1, 4, func(0.5,3));
+	g.addEdge(2, 4, func(0.5,1));
+	g.addEdge(3, 4, func(0.5,2));
+	
+	g.addDemand(0, 4, 20.0);
+	AlgorithmBSolver abs(g);
+	cout << abs << endl;
+	abs.solve(1);
+	cout << abs << endl;
+*/
 }

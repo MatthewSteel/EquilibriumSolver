@@ -20,35 +20,35 @@
 
 #include "GraphEdge.hpp"
 #include "BushNode.hpp"
+#include <limits>
 
-GraphEdge::GraphEdge(InputGraph::VDF i, BushNode& from, BushNode& to) :
-	inverse(0),
-	flow (0),
+using namespace std;
+
+ForwardGraphEdge::ForwardGraphEdge(InputGraph::VDF i, BushNode *to) : to(to), _distance(i(0))
+{}
+
+ForwardGraphEdge::ForwardGraphEdge(const ForwardGraphEdge & e) : to(e.to), _distance(e._distance)
+{}
+
+BackwardGraphEdge::BackwardGraphEdge(InputGraph::VDF i, BushNode *from, ForwardGraphEdge *e):
+	inverse(e),
 	distanceFunction(i),
-	from(&from),
-	to(&to),
-	toId(to.getId())
-{
-	distance = distanceFunction(flow);
+	from(from),
+	toId(e->getToId()),
+	flow(0)
+{}
+
+BackwardGraphEdge::BackwardGraphEdge(const BackwardGraphEdge& e):
+	inverse(e.inverse),
+	distanceFunction(e.distanceFunction),
+	from(e.from),
+	toId(e.toId),
+	flow(e.flow)
+{}
+
+unsigned ForwardGraphEdge::getToId() { return to->getId(); }
+
+std::ostream& operator<<(std::ostream& o, BackwardGraphEdge& e) {
+	o << "Edge: (" << e.from->getId() << ", " << e.toId << "), flow: " << e.flow << ", cost: " << e.inverse->distance() << ", fge address: " << e.inverse;
+	return o;
 }
-
-GraphEdge::GraphEdge(const GraphEdge& e):
-		distance(e.distance),
-		inverse(e.inverse),
-		flow(e.flow),
-		distanceFunction(e.distanceFunction),
-		from(e.from),
-		to(e.to),
-		toId(e.toId)
-{}
-
-GraphEdge::GraphEdge(BushNode& from, BushNode& to) :
-		distance(std::numeric_limits<double>::infinity()),
-		to(&to),
-		inverse(0),
-		flow(0),
-		distanceFunction(HornerPolynomial(std::vector<double>(1,std::numeric_limits<double>::infinity()))),
-		from(&from),
-		toId(to.getId())
-{}
-//Ugh, think distance needs to be public for BGL, will put in a request maybe.

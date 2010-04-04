@@ -32,20 +32,20 @@ origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), 
 {
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
-	setUpGraph(g);
+	setUpGraph();
 	topologicalSort();
 	//Sends out initial flow patterns (all-or-nothing):
 	buildTrees();
 	sendInitialFlows();
 }
 
-void Bush::setUpGraph(ABGraph& g)
+void Bush::setUpGraph()
 {
-	vector<double> distanceMap(g.numVertices(), numeric_limits<double>::infinity());
+	vector<double> distanceMap(graph.numVertices(), numeric_limits<double>::infinity());
 
-	g.dijkstra(origin.getOrigin(), distanceMap);
+	graph.dijkstra(origin.getOrigin(), distanceMap);
 
-	vector<BackwardGraphEdge>::iterator begin = g.begin(), end=g.end();
+	vector<BackwardGraphEdge>::iterator begin = graph.begin(), end=graph.end();
 	/*
 	Partial order to ensure acyclicity: Order on distance, then node id if
 	we get a tie. Remembering, some of these arcs will be imaginary, and
@@ -64,9 +64,8 @@ void Bush::setUpGraph(ABGraph& g)
 		double fromDistance = distanceMap.at(fromId);
 
 		if(toDistance + fromDistance == numeric_limits<double>::infinity()) continue;
-		
 		if(fromDistance < toDistance || (fromDistance == toDistance && fromId < toId)) {
-			bush.at(fromId).push_back(BushEdge(ABGraph.forward(&(*iter))));
+			bush.at(fromId).push_back((BushEdge(graph.forward(&(*iter)))));
 			//Turning edges around will make this a little prettier.
 		}
 	}
@@ -88,20 +87,23 @@ void Bush::sendInitialFlows()
 		while(node != &sharedNodes.at(origin.getOrigin())) {
 			//Flow back to the bush's root
 			node->getMinPredecessor()->addFlow(i->second);
-			node = node->getMinPredecessor()->fromNode();
+			BackwardGraphEdge* bge = graph.backward(node->getMinPredecessor()->underlyingEdge());
+			bge->addFlow(i->second);
+			node->getMinPredecessor()->underlyingEdge()->setDistance((*bge->costFunction())(bge->getFlow()));
+			node = bge->fromNode();
 		}
 	}
 }//Performs initial all-or-nothing flows in Bush, adding to both BushEdges and GraphEdges.
 
-void Bush::printCrap() const
+void Bush::printCrap()
 {
 	//Not really used, exists for debugging purposes if I really break something.
 	cout << "Printing  crap:" <<endl;
 	cout << "Out arcs:"<<endl;
-	for(vector<BushNode>::const_iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
+	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
 		cout << i-sharedNodes.begin()+1 << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
-		for(vector<BushEdge>::const_iterator j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
-			cout << " " << (j->toNodeId()+1) << "(" << (j->length()) << "," << (j->flow())<<") ";
+		for(vector<BushEdge>::iterator j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
+			cout << " " << (j->toNodeId()+1) << "(" << (j->length()) << "," << (j->flow()) << ", " << (j->underlyingEdge()) << ") ";
 		}
 		cout << endl;
 	}
@@ -129,7 +131,7 @@ bool Bush::equilibriateFlows(double accuracy)
 		bool thisTime = false;
 		for(vector<pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
 			if (sharedNodes[i->first].getDifference() > accuracy) {
-				sharedNodes[i->first].equilibriate();
+				sharedNodes[i->first].equilibriate(graph);
 				//makes it better
 				thisTime = true;
 			}
@@ -143,6 +145,7 @@ bool Bush::equilibriateFlows(double accuracy)
 
 void Bush::buildTrees()
 {
+//	cout << "Building trees" << endl;
 	//Reset shared data
 	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i)
 		i->reset();
@@ -154,6 +157,8 @@ void Bush::buildTrees()
 		vector<BushEdge>& outEdges = bush[*i];
 		v.updateOutDistances(outEdges);
 	}
+	
+//	printCrap();
 }//Resets min, max distances, builds min/max trees.
 
 bool Bush::updateEdges()
@@ -260,7 +265,8 @@ double Bush::allOrNothingCost()
 		while(node != &sharedNodes.at(origin.getOrigin())) {
 			//Flow back to the bush's root
 			cost += i->second*node->getMinPredecessor()->length();
-			node = node->getMinPredecessor()->fromNode();
+			
+			node = graph.backward(node->getMinPredecessor()->underlyingEdge())->fromNode();
 		}
 	}
 	return cost;

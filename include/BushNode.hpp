@@ -24,7 +24,10 @@
 #include <vector>
 #include <limits>
 #include <iostream>
+#include <utility>
+
 #include "BushEdge.hpp"
+#include "ABGraph.hpp"
 
 class BushNode
 {
@@ -36,7 +39,7 @@ class BushNode
 		double maxDist() const { return maxDistance; }
 		unsigned getId() const { return id; }
 		double getDifference() const { return (maxDistance-minDistance); }
-		BushNode* getMinPredecessor() { return minPredecessor; }
+		BushEdge* getMinPredecessor() { return minPredecessor; }
 		void reset() {
 			realFlow = false;
 			maxDistance = std::numeric_limits<double>::infinity();
@@ -46,8 +49,9 @@ class BushNode
 		}
 		void setDistance(double d) { minDistance = maxDistance = d; }
 	private:
-		bool moreSeparatePaths(BushNode*&, BushNode*&);
-		void fixDifferentPaths(std::vector<BushEdge*>&, std::vector<BushEdge*>&, double);
+		bool moreSeparatePaths(BushNode*&, BushNode*&, ABGraph&);
+		void fixDifferentPaths(std::vector<std::pair<BushEdge*, BackwardGraphEdge*> >&,
+				       std::vector<std::pair<BushEdge*, BackwardGraphEdge*> >&, double);
 		
 		BushEdge* minPredecessor;
 		BushEdge* maxPredecessor;
@@ -62,7 +66,6 @@ class BushNode
 //Also try threading min/max? Could gain 30 odd % if we're lucky, but they only run for 3ms on our biggest graph...
 inline void BushNode::updateOutDistances(std::vector<BushEdge>& outEdges)
 {
-	
 	for(std::vector<BushEdge>::iterator i = outEdges.begin(); i != outEdges.end(); ++i) {
 		//Function only gets called when !outEdges.empty()
 		BushEdge& outEdge = (*i);

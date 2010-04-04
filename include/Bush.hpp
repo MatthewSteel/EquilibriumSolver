@@ -34,17 +34,11 @@ class Bush
 	public:
 		Bush(const Origin&, ABGraph&, std::vector<std::pair<double, unsigned> >&);//Inits bush, sends initial flows
 		bool fix(double);
-		void printCrap() const;
+		void printCrap();
 		int getOrigin() { return origin.getOrigin(); }
 		int giveCount()/* const*/;
 		double allOrNothingCost();
 		double maxDifference();
-		void doThings(unsigned& edges, unsigned& capacity) const {
-			for(std::vector<std::vector<BushEdge> >::const_iterator i = bush.begin(); i != bush.end(); ++i) {
-				edges += i->size();
-				capacity += i->capacity();
-			}
-		}
 		~Bush();
 	private:
 		bool updateEdges();
@@ -53,7 +47,7 @@ class Bush
 		void buildTrees();
 		void sendInitialFlows();
 		//Makes sure all our edges are pointing in the right direction, and we're sorted well.
-		void setUpGraph(ABGraph& g);
+		void setUpGraph();
 		void topologicalSort();
 		
 		const Origin& origin;

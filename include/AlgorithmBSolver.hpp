@@ -70,14 +70,12 @@ class AlgorithmBSolver
 		//Ugh, remnants of old debugging?
 		//Doesn't print anything good most of the time now, considering node/edge data is all shared now across bushes.
 		
-		friend std::ostream& operator<<(std::ostream& o, AlgorithmBSolver& e)
-		{
-			std::vector<GraphEdge>::iterator begin=e.graph.begin(), end=e.graph.end(); //Different class name?
-			for(std::vector<GraphEdge>::iterator i = begin; i != end; ++i)
-				o << "Edge (" << i->fromNode()->getId() << ',' << i->toNode()->getId() << "), " << *i << '\n';
+		friend std::ostream& operator<<(std::ostream& o, AlgorithmBSolver & abs) {
+			o << abs.graph;
 			return o;
-		}//FIXME: Make this do something more useful? Format it nicely?
-
+		}
+		
+		
 		/**
 		 * Gets us a count of the total number of bush-specific edges
 		 * with positive flows. For curiosity. (It's usually about a
