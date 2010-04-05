@@ -68,12 +68,12 @@ class BackwardGraphEdge
 		double getFlow() const { return flow; }
 		friend std::ostream& operator<<(std::ostream& o, BackwardGraphEdge& e);
 	private:
-		
-		ForwardGraphEdge* inverse;
 		InputGraph::VDF distanceFunction;//Dang, 32 bytes in GCC!?
+		ForwardGraphEdge* inverse;
 		BushNode* from;
-		unsigned toId;
 		double flow;
+		unsigned toId;
+		
 };
 
 #endif

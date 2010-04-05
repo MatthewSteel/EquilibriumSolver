@@ -84,6 +84,7 @@ class AlgorithmBSolver
 		 */
 		int getCount() const;
 		double relativeGap();
+		double averageExcessCost();
 		void wasteTime() const;
 		~AlgorithmBSolver();
 		//NOTE: Have we remembered to clean up nonexistant edges?

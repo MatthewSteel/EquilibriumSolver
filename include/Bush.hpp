@@ -25,6 +25,7 @@
 #include "Origin.hpp"
 #include "BushNode.hpp"
 #include "ABGraph.hpp"
+#include "EdgeVector.hpp"
 
 #include <vector>
 #include <utility>
@@ -43,7 +44,7 @@ class Bush
 	private:
 		bool updateEdges();
 		bool equilibriateFlows(double);//Equilibriates, tells graph what's going on
-		bool updateEdges(std::vector<BushEdge>&, double, unsigned);
+		bool updateEdges(EdgeVector&, double, unsigned);
 		void buildTrees();
 		void sendInitialFlows();
 		//Makes sure all our edges are pointing in the right direction, and we're sorted well.
@@ -51,7 +52,7 @@ class Bush
 		void topologicalSort();
 		
 		const Origin& origin;
-		std::vector<std::vector<BushEdge> > bush;
+		std::vector<EdgeVector> bush;//Stores BushEdges, half the memory req of regular vectors.
 		//Used to be vec<vec<Edge*>> but now edges are lightweight, rarely move and the pointer is just extra storage.
 		//(We need to store ~50,000,000 of these. If we need to save space at the expense of running time we can probably cut that by 5 though.)
 		
@@ -65,9 +66,9 @@ class Bush
 };
 
 //Inlined because we call this once per node per iteration, and spend 35% of our time in here.
-inline bool Bush::updateEdges(std::vector<BushEdge>& outEdges, double maxDist, unsigned id)
+inline bool Bush::updateEdges(EdgeVector& outEdges, double maxDist, unsigned id)
 {
-	std::vector<BushEdge>::iterator changeBegin = outEdges.begin(), last = outEdges.end();
+	BushEdge* changeBegin = outEdges.begin(), *last = outEdges.end();
 	
 	//Partition outEdges into good, bad. Pretty sure std::partition didn't inline.
 	//As seen in quicksort etc.
@@ -82,14 +83,14 @@ inline bool Bush::updateEdges(std::vector<BushEdge>& outEdges, double maxDist, u
 	if(changeBegin == outEdges.end()) return true;
 	//No bad ones, we can  exit early.
 	
-	for(std::vector<BushEdge>::iterator i = changeBegin; i != outEdges.end(); ++i) {
+	for(BushEdge* i = changeBegin; i != outEdges.end(); ++i) {
 		
 		BushEdge& edge = (*i);
 		unsigned toId = edge.toNodeId();
 		edge.swapDirection(graph);
 		bush[toId].push_back(edge);
 	}
-	outEdges.erase(changeBegin,outEdges.end());
+	outEdges.resize(outEdges.end()-changeBegin);
 	//For all of the bad ones, switch their directions and remove them from the out-edge list.
 	return false;
 }

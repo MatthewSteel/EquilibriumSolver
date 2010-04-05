@@ -130,6 +130,24 @@ double AlgorithmBSolver::relativeGap()
 	return 1-lowerBound/upperBound;
 }
 
+double AlgorithmBSolver::averageExcessCost()
+{
+	double upperBound = graph.currentCost();
+	double lowerBound = 0.0;
+	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i)
+		lowerBound += (*i)->allOrNothingCost();
+	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
+		lowerBound += (*i)->allOrNothingCost();
+	//cout << "Upper: " << upperBound << ", Lower: " << lowerBound << endl;
+	double demand = 0;
+	for(list<Origin>::iterator i = ODData.begin(); i != ODData.end(); ++i) {
+		for(vector<pair<int,double> >::const_iterator j = i->dests().begin(); j != i->dests().end(); ++j) {
+			demand += j->second;
+		}
+	}
+	return (upperBound-lowerBound)/demand;
+}
+
 int AlgorithmBSolver::getCount() const
 {
 	int count = 0;

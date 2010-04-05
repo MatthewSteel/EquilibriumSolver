@@ -28,13 +28,14 @@
 
 #include "BushEdge.hpp"
 #include "ABGraph.hpp"
+#include "EdgeVector.hpp"
 
 class BushNode
 {
 	public:
 		BushNode(unsigned);
 		void equilibriate(ABGraph&);
-		void updateOutDistances(std::vector<BushEdge>&);
+		void updateOutDistances(EdgeVector&);
 		double minDist() const { return minDistance; }
 		double maxDist() const { return maxDistance; }
 		unsigned getId() const { return id; }
@@ -64,9 +65,10 @@ class BushNode
 //This function inlined because we spend 60% of our total execution time in it.
 //Will be marginally sped up by inverting arcs?
 //Also try threading min/max? Could gain 30 odd % if we're lucky, but they only run for 3ms on our biggest graph...
-inline void BushNode::updateOutDistances(std::vector<BushEdge>& outEdges)
+inline void BushNode::updateOutDistances(EdgeVector& outEdges)
 {
-	for(std::vector<BushEdge>::iterator i = outEdges.begin(); i != outEdges.end(); ++i) {
+	BushEdge* end = outEdges.end();
+	for(BushEdge* i = outEdges.begin(); i != end; ++i) {
 		//Function only gets called when !outEdges.empty()
 		BushEdge& outEdge = (*i);
 		BushNode* toNode = outEdge.toNode();

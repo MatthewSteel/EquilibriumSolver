@@ -102,7 +102,7 @@ void Bush::printCrap()
 	cout << "Out arcs:"<<endl;
 	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
 		cout << i-sharedNodes.begin()+1 << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
-		for(vector<BushEdge>::iterator j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
+		for(BushEdge* j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
 			cout << " " << (j->toNodeId()+1) << "(" << (j->length()) << "," << (j->flow()) << ", " << (j->underlyingEdge()) << ") ";
 		}
 		cout << endl;
@@ -145,7 +145,6 @@ bool Bush::equilibriateFlows(double accuracy)
 
 void Bush::buildTrees()
 {
-//	cout << "Building trees" << endl;
 	//Reset shared data
 	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i)
 		i->reset();
@@ -154,11 +153,10 @@ void Bush::buildTrees()
 
 	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin(); i < topologicalOrdering.end(); ++i) {
 		BushNode &v = sharedNodes[*i];
-		vector<BushEdge>& outEdges = bush[*i];
+		EdgeVector& outEdges = bush[*i];
 		v.updateOutDistances(outEdges);
 	}
 	
-//	printCrap();
 }//Resets min, max distances, builds min/max trees.
 
 bool Bush::updateEdges()
@@ -166,7 +164,7 @@ bool Bush::updateEdges()
 	bool same = true;
 	
 	unsigned fromNode = 0;
-	for(vector<vector<BushEdge> >::iterator i = bush.begin(); i != bush.end(); ++i, ++fromNode) {
+	for(vector<EdgeVector>::iterator i = bush.begin(); i != bush.end(); ++i, ++fromNode) {
 		if(!i->empty() && !updateEdges(*i, sharedNodes[fromNode].maxDist(), fromNode)) {
 			//TODO: remove the !i->empty()?
 			same = false;
