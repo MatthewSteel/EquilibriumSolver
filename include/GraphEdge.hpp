@@ -33,47 +33,46 @@ Split edges for cache gains. Should bring GraphEdges from 4.32MB total in CR's
 BuildTrees to ~1.5MB
 */
 
-class ForwardGraphEdge
-{
-	public:
-		ForwardGraphEdge(InputGraph::VDF, BushNode *to);
-		ForwardGraphEdge(const ForwardGraphEdge & e);
-
-		unsigned getToId();
-		double distance() const { return _distance; }
-		void setDistance(double d) { _distance = d; }
-		BushNode* toNode() { return to; }
-	private:
-		friend class BackwardGraphEdge;
-		BushNode* to;
-		double _distance;
-};
-
 class BackwardGraphEdge
 {
 	public:
-		BackwardGraphEdge(InputGraph::VDF, BushNode* from, ForwardGraphEdge* inverse);
-		BackwardGraphEdge(const BackwardGraphEdge& e);
+		BackwardGraphEdge(InputGraph::VDF, BushNode *from);
+		BackwardGraphEdge(const BackwardGraphEdge & e);
+
+		unsigned getFromId();
+		double distance() const { return _distance; }
+		void setDistance(double d) { _distance = d; }
+		BushNode* fromNode() { return to; }
+	private:
+		friend class ForwardGraphEdge;
+		BushNode* from;
+		double _distance;
+};
+
+class ForwardGraphEdge
+{
+	public:
+		ForwardGraphEdge(InputGraph::VDF, BushNode* to, BackwardGraphEdge* inverse);
+		ForwardGraphEdge(const ForwardGraphEdge& e);
 		
 		const InputGraph::VDF* costFunction() const { return &distanceFunction; }
 
-		BushNode* fromNode() { return from; }
-		unsigned getToId() const { return toId; }
+		BushNode* toNode() { return to; }
+		unsigned getFromId() const { return fromId; }
 
-		void setInverse(ForwardGraphEdge* ge) { inverse = ge; }
-		ForwardGraphEdge* getInverse() { return inverse; }
+		void setInverse(BackwardGraphEdge* ge) { inverse = ge; }
+		BackwardGraphEdge* getInverse() { return inverse; }
 		void addFlow(double d) {
 			flow += d;
-		}//TODO: add dist to FGE?
+		}//TODO: add dist to BGE?
 		double getFlow() const { return flow; }
-		friend std::ostream& operator<<(std::ostream& o, BackwardGraphEdge& e);
+		friend std::ostream& operator<<(std::ostream& o, ForwardGraphEdge& e);
 	private:
 		InputGraph::VDF distanceFunction;//Dang, 32 bytes in GCC!?
-		ForwardGraphEdge* inverse;
-		BushNode* from;
+		BackwardGraphEdge* inverse;
+		BushNode* to;
 		double flow;
-		unsigned toId;
-		
+		unsigned fromId;
 };
 
 #endif

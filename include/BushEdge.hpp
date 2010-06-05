@@ -42,7 +42,7 @@ class BushEdge
 		/**
 		 * TODO
 		 */
-		BushEdge(ForwardGraphEdge* arc) :
+		BushEdge(BackwardGraphEdge* arc) :
 			realEdge(arc), ownFlow(0) {}
 
 		/**
@@ -70,12 +70,12 @@ class BushEdge
 		/**
 		 * TODO
 		 */
-		BushNode* toNode() const { return realEdge->toNode(); }
+		BushNode* fromNode() const { return realEdge->fromNode(); }
 
 		/**
 		 * TODO
 		 */
-		unsigned toNodeId() const { return realEdge->getToId(); }
+		unsigned fromNodeId() const { return realEdge->getFromId(); }
 
 		/**
 		 * Turns the arc around. We assume a topological sort will
@@ -90,9 +90,9 @@ class BushEdge
 		 */
 		void addFlow(double d) { ownFlow += d; }//TODO: Add flow to BGE?
 		
-		ForwardGraphEdge* underlyingEdge() { return realEdge; }
+		BackwardGraphEdge* underlyingEdge() { return realEdge; }
 	private:
-		ForwardGraphEdge* realEdge;
+		BackwardGraphEdge* realEdge;
 		double ownFlow;
 };
 
