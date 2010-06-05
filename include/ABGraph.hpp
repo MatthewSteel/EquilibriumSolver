@@ -119,7 +119,7 @@ class ABGraph
 		}
 		
 		//TODO: Add param info, have it return a good topo order (visited).
-		void dijkstra(unsigned origin, std::vector<double>& distances);
+		void dijkstra(unsigned origin, std::vector<double>& distances, std::vector<unsigned>& order);
 		
 		/**
 		 * Returns the total user travel time in the current solution.

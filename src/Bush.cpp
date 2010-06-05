@@ -33,7 +33,6 @@ origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), 
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
 	setUpGraph();
-	topologicalSort();
 	//Sends out initial flow patterns (all-or-nothing):
 	buildTrees();
 	sendInitialFlows();
@@ -43,19 +42,15 @@ void Bush::setUpGraph()
 {
 	vector<double> distanceMap(graph.numVertices(), numeric_limits<double>::infinity());
 
-	graph.dijkstra(origin.getOrigin(), distanceMap);
+	graph.dijkstra(origin.getOrigin(), distanceMap, topologicalOrdering);
 
 	vector<BackwardGraphEdge>::iterator begin = graph.begin(), end=graph.end();
 	/*
-	Partial order to ensure acyclicity: Order on distance, then node id if
-	we get a tie. Remembering, some of these arcs will be imaginary, and
-	that nodes at infinite distance aren't called for. TODO: Fail if a
-	destination is at infinite distance.
-	
-	BUG (maybe): nodes at equal distance because of zero-length connecting
-	arcs aren't handled correctly. The partial order criteria don't ensure
-	connectivity. Breaks Philadelphia. Bar-Gera (2002) says arcs must have
-	strictly positive lengths, though.
+	Our Dijkstra routine gives a proper topological ordering, consistent
+	even in the presence of zero-length arcs. Of course, the traffic
+	assignment problem zero-length arcs does not have a unique link-flow
+	solution in general, so it isn't really an issue that we aren't as
+	careful later on.
 	*/
 	for(vector<BackwardGraphEdge>::iterator iter = begin; iter != end; ++iter) {
 		unsigned toId = iter->getToId();
@@ -64,19 +59,20 @@ void Bush::setUpGraph()
 		double fromDistance = distanceMap.at(fromId);
 
 		if(toDistance + fromDistance == numeric_limits<double>::infinity()) continue;
+		//Ignore edges around unreachable nodes.
+		
 		if(fromDistance < toDistance || (fromDistance == toDistance && fromId < toId)) {
+			//BUG: the fromId < toId thing is no good. FIXME, this
+			//condition should be (place[toId] < place[fromId]).
+			
+			//When we're finally done Dijkstra will just add the predecessors
+			//and we'll be away. (Dijkstra will be in this class then, no doubt)
+			
 			bush.at(fromId).push_back((BushEdge(graph.forward(&(*iter)))));
-			//Turning edges around will make this a little prettier.
+			//Turning edges around may make this a little prettier.
 		}
 	}
 
-	//So topo sort works ok the first time:
-	for(unsigned i = 0; i < sharedNodes.size(); ++i) {
-		if(distanceMap.at(i) != numeric_limits<double>::infinity()) {
-			sharedNodes.at(i).setDistance(distanceMap.at(i));
-			topologicalOrdering.push_back(i);
-		}
-	}
 }
 
 void Bush::sendInitialFlows()

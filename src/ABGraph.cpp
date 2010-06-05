@@ -74,24 +74,43 @@ ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdg
 	}
 }
 
-void ABGraph::dijkstra(unsigned origin, vector<double>& distances)
+void ABGraph::dijkstra(unsigned origin, vector<double>& distances, vector<unsigned>& order)
 {
-	//TODO: Give a topological order so we can deal with equidistant nodes later.
+	const double unvisited = -numeric_limits<double>::infinity();//Ugly, dumb
+	
 	for(vector<double>::iterator i = distances.begin(); i != distances.end(); ++i) {
-		*i = -1.0;//Ugly, dumb.
+		*i = unvisited;
 	}
+	
 	priority_queue<pair<double, unsigned> > queue;
 	queue.push(make_pair(0, origin));
+	
 	while(!queue.empty()) {
 		double distance = queue.top().first;
 		unsigned id = queue.top().second;
-		if(distances[id] == -1.0) {
-			distances[id] = -distance;
+		
+		if(distance == unvisited) break;
+		//Unnecessary, but saves putting unreachable elements in the topo sort.
+		//No real time benefit here, but saves a bit in the main algorithm.
+	
+		if(distances[id] == unvisited) {
+		
+			distances[id] = distance;//Out-distance
+			order.push_back(id);//out-topological sort.
+		
 			for(vector<unsigned>::iterator i = edgeStructure[id].begin(); i != edgeStructure[id].end(); ++i) {
 				ForwardGraphEdge& fge = forwardStorage[*i];
-				queue.push(make_pair(distance - fge.distance(), fge.getToId()));
+				if(distances[fge.getToId()] == unvisited) {
+					//If statement unnecessary, but cuts runtime by 1/3
+					queue.push(make_pair(distance - fge.distance(), fge.getToId()));
+					//(dist - len) instead of (dist + len) because it's a max-queue (we want the min)
+				}
 			}
 		}
 		queue.pop();
+	}
+	for(vector<double>::iterator i = distances.begin(); i != distances.end(); ++i) {
+		(*i) = -(*i);
+		//Righting the negative distance labels.
 	}
 }
