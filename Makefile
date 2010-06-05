@@ -23,6 +23,7 @@ CXXFLAGS = \
 
 all: $(EXE)
 
+
 .SUFFIXES: .cpp .o
 
 $(EXE): $(OBJS)

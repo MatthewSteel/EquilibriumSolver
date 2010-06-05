@@ -217,20 +217,7 @@ void Bush::topologicalSort()
 
 int Bush::giveCount()// const
 {
-	/*
-	Returns the number of arcs with non-zero flow from this bush. Tends to
-	reach about a fifth of all arcs in typical road networks.
-	*/
 	//NOTE: now returns number of nodes with the same distance.
-	/*
-	int count = 0;
-	for(vector<vector<BushEdge> >::const_iterator i = bush.begin(); i != bush.end(); ++i) {
-		for(vector<BushEdge>::const_iterator j = i->begin(); j != i->end(); ++j) {
-			if(j->used()) ++count;
-		}
-	}
-	return count;
-	*/
 	buildTrees();
 	unsigned count = 0;
 	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); i != topologicalOrdering.end();) {
@@ -241,6 +228,18 @@ int Bush::giveCount()// const
 		i = j;
 	}
 	return count;
+	
+	/*
+	//Returns the number of arcs with non-zero flow from this bush. Tends to
+	//reach about a fifth of all arcs in typical road networks.
+	int count = 0;
+	for(vector<vector<BushEdge> >::const_iterator i = bush.begin(); i != bush.end(); ++i) {
+		for(vector<BushEdge>::const_iterator j = i->begin(); j != i->end(); ++j) {
+			if(j->used()) ++count;
+		}
+	}
+	return count;
+	*/
 }
 
 double Bush::allOrNothingCost()

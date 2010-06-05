@@ -77,10 +77,9 @@ void AlgorithmBSolver::solve(unsigned iterationLimit)
 {
 	//TODO: Change this to something better than .25*avg (probably nth_element)
 	
-//	cout << "Entering solve" << endl;
 	
 	double sum = 0.0;
-	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i)
+	for(list<Bush*>::iterator i = bushes.begin(); i != bushes.end(); ++i) 
 		sum += (*i)->maxDifference();
 	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		sum += (*i)->maxDifference();

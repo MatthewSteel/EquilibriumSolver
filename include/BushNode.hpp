@@ -63,30 +63,32 @@ class BushNode
 };
 
 //This function inlined because we spend 60% of our total execution time in it.
-//Will be marginally sped up by inverting arcs?
+//Will be sped up by inverting arcs?
 //Also try threading min/max? Could gain 30 odd % if we're lucky, but they only run for 3ms on our biggest graph...
 inline void BushNode::updateOutDistances(EdgeVector& outEdges)
 {
 	BushEdge* end = outEdges.end();
+	double minDist = minDistance;
+	double maxDist = maxDistance;
 	for(BushEdge* i = outEdges.begin(); i != end; ++i) {
 		//Function only gets called when !outEdges.empty()
-		BushEdge& outEdge = (*i);
-		BushNode* toNode = outEdge.toNode();
-		double edgeLength = outEdge.length();
-		if(minDistance + edgeLength <= toNode->minDistance) {
-			toNode->minDistance = minDistance + edgeLength;
-			toNode->minPredecessor = &outEdge;
+		BushEdge* outEdge = &(*i);
+		BushNode* toNode = outEdge->toNode();
+		double edgeLength = outEdge->length();
+		if(minDist + edgeLength <= toNode->minDistance) {
+			toNode->minDistance = minDist + edgeLength;
+			toNode->minPredecessor = outEdge;
 		}
-		if(/*realFlow &&*/outEdge.used()) {//BUG, TODO: This should fix a bug? Test it later.
+		if(/*realFlow &&*/outEdge->used()) {//BUG, TODO: This should fix a bug? Test it later.
 			if(!toNode->realFlow || maxDistance + edgeLength > toNode->maxDistance) {
-				toNode->maxDistance = maxDistance + edgeLength;
-				toNode->maxPredecessor = &outEdge;
+				toNode->maxDistance = maxDist + edgeLength;
+				toNode->maxPredecessor = outEdge;
 			}
 			toNode->realFlow = true;
-		} else if (!outEdge.toNode()->realFlow) {
+		} else if (!outEdge->toNode()->realFlow) {
 			if(maxDistance + edgeLength < toNode->maxDistance) {
-				toNode->maxDistance = maxDistance + edgeLength;
-				toNode->maxPredecessor = &outEdge;
+				toNode->maxDistance = maxDist + edgeLength;
+				toNode->maxPredecessor = outEdge;
 			}
 		}
 	}

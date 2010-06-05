@@ -42,10 +42,11 @@ bool BushNode::moreSeparatePaths(BushNode*& minNode, BushNode*& maxNode, ABGraph
 	}
 }//Ignore min/max paths that coincide
 
+
 void BushNode::fixDifferentPaths(vector<pair<BushEdge*, BackwardGraphEdge*> >& minEdges,
                                  vector<pair<BushEdge*, BackwardGraphEdge*> >& maxEdges, double maxChange)
 {
-//	cout << "Length of things: "<< minEdges.size() << ", " << maxEdges.size() << ", maxChange: " << maxChange << endl;
+
 	ABAdder hp;
 	for(vector<pair<BushEdge*, BackwardGraphEdge*> >::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
 		hp -= make_pair(i->second->costFunction(), i->second->getFlow());
@@ -58,24 +59,9 @@ void BushNode::fixDifferentPaths(vector<pair<BushEdge*, BackwardGraphEdge*> >& m
 	double newFlow = solver.solve(hp, maxChange, 0);//Change in flow
 	
 	if(newFlow == 0) return;//No change
-//	double eval = hp(newFlow);
 
-/*	if(hp(newFlow) < -1) {
-		cout << maxChange << ',' << newFlow << endl;
-		newFlow = maxChange;
-	}
-	/*
-	HACK: Because the equation may have no roots, we sometimes get silly
-	results from it. Unfortunately, when we consider the different distinct
-	min/max path segments separately, sometimes the solver says we should
-	shift flow the wrong way, giving us false positives when we just test
-	newFlow < 0. -0.1 is arbitrary, but it seems to distinguish the two cases
-	*/
-	
 	if(newFlow > maxChange) newFlow = maxChange;
-	//This is done in the solver now?
-	
-//	cout << "newFlow: " << newFlow <<endl;
+	//Wait, is this done in the solver now?
 	
 	for(vector<pair<BushEdge*, BackwardGraphEdge*> >::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
 		i->first->addFlow(newFlow);
@@ -91,14 +77,15 @@ void BushNode::fixDifferentPaths(vector<pair<BushEdge*, BackwardGraphEdge*> >& m
 
 void BushNode::equilibriate(ABGraph& graph)
 {
-	BushNode* minNode = this;
-	BushNode* maxNode = this;
-
 	/*
 	NOTE: It is very important to equilibriate the different distinct segments
 	of the min/max paths separately, or we get worst-case behaviour a'la
 	Ford-Fulkerson
 	*/
+	
+	BushNode* minNode = this;
+	BushNode* maxNode = this;
+
 	while (true) {
 		vector<pair<BushEdge*, BackwardGraphEdge*> > minEdges;
 		vector<pair<BushEdge*, BackwardGraphEdge*> > maxEdges;
@@ -108,30 +95,21 @@ void BushNode::equilibriate(ABGraph& graph)
 		if(!moreSeparatePaths(minNode, maxNode, graph)) return;
 		//Indicates we're done or sets node positions to start of next segment
 		
-//		cout << "minNode: " << minNode->id << ", distance " << minNode->maxDistance << endl;
-//		cout << "maxNode: " << maxNode->id << ", distance " << maxNode->maxDistance << endl;
-		do { //Trace paths back, adding arcs to lists
+		do { //Trace separate paths back, adding arcs to lists
 			if(minNode->maxDistance >= maxNode->maxDistance) {
 				BushEdge* pred = minNode->minPredecessor;
 				BackwardGraphEdge* bge = graph.backward(pred->underlyingEdge());
 				minEdges.push_back(make_pair(pred, bge));
 				minNode = bge->fromNode();
-//				cout << "minNode: " << minNode->id << ", distance " << minNode->maxDistance << ", flow: " << pred->flow() << ", length: " << pred->length() << endl;
-//				cout << "Total edge flow: " << bge->getFlow() << ", calcDistance: " << (*bge->costFunction())(bge->getFlow()) << endl;
 			} else {
 				BushEdge* pred = maxNode->maxPredecessor;
 				BackwardGraphEdge* bge = graph.backward(pred->underlyingEdge());
 				maxChange = min(maxChange, pred->flow());
 				maxEdges.push_back(make_pair(pred, bge));
 				maxNode = bge->fromNode();
-//				cout << "maxNode: " << maxNode->id << ", distance " << maxNode->maxDistance << ", flow: " << pred->flow() << ", length: " << pred->length() << endl;
-//				cout << "Total edge flow: " << bge->getFlow() << ", calcDistance: " << (*bge->costFunction())(bge->getFlow()) << endl;
 			}
 		} while(minNode->id != maxNode->id);
 		if(maxChange > 1e-12) fixDifferentPaths(minEdges, maxEdges, maxChange);
-		//Should I return otherwise? Should I return when I see it for the first time?
-		//Not that it matters too much, we spend < 3% of our time here and down.
-		//Benchmark it.
 	}
 	//Probably the ugliest function in the program now.
 }
