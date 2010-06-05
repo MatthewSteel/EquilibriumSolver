@@ -72,7 +72,6 @@ void Bush::setUpGraph()
 			//Turning edges around may make this a little prettier.
 		}
 	}
-
 }
 
 void Bush::sendInitialFlows()
