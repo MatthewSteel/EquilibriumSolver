@@ -56,42 +56,98 @@ class BushNode
 		
 		BushEdge* minPredecessor;
 		BushEdge* maxPredecessor;
+		//TODO: store predecessors elsewhere.
+		
 		double minDistance;
 		double maxDistance;
+
 		unsigned id;
-		bool realFlow;
+		//TODO: Remove id, if we can.
 };
 
-//This function inlined because we spend 60% of our total execution time in it.
-//Will be sped up by inverting arcs?
-//Also try threading min/max? Could gain 30 odd % if we're lucky, but they only run for 3ms on our biggest graph...
+/*
+This function inlined because it's called many, many times, and we spend quite
+a bit of time in it. ~60%?
+Could think about threading it, 
+*/
 inline void BushNode::updateOutDistances(EdgeVector& outEdges)
 {
+	/*
+	Our rules are as follows:
+	Min-dist is the min of in-arc lengths + in-arc origin-node min-dists.
+	If we have in-flows, max-dist is the max of in-arc lengths + in-arc
+	origin-node max-dists (only across in-arcs with flow)
+	If we don't have in-flows, max-dist is the min of in-arc length +
+	in-arc origin-node max dists. (Seems silly, seems to work)
+	*/
+	
+	
+	/*
+	NOTE: We won't begin by assuming that all nodes have in-arcs.
+	
+	This is far too branchy for my tastes. Maybe we should order these
+	edges by flow? Could get rid of a few branches. Maintaining order
+	could be costly, though.
+	*/
+	
+	/*
+	Whole function looks like a big case of "Dammit compiler, I know what
+	I'm doing." Loading data early, storing it at the end, all that stuff.
+	Will still want to look at the generated ASM, though.
+	*/
+	BushEdge* minPred = 0;
+	BushEdge* maxPred = 0;
+	double minDist = std::numeric_limits<double>::infinity();
+	double maxDist = std::numeric_limits<double>::infinity();
+	
+	BushEdge* it;
 	BushEdge* end = outEdges.end();
-	double minDist = minDistance;
-	double maxDist = maxDistance;
-	for(BushEdge* i = outEdges.begin(); i != end; ++i) {
-		//Function only gets called when !outEdges.empty()
-		BushEdge* outEdge = &(*i);
-		BushNode* toNode = outEdge->toNode();
-		double edgeLength = outEdge->length();
-		if(minDist + edgeLength <= toNode->minDistance) {
-			toNode->minDistance = minDist + edgeLength;
-			toNode->minPredecessor = outEdge;
+
+	for(it = outEdges.begin(); it != end && !it->used(); ++it) {
+		//No flow to date.
+		BushNode *fromNode = it->fromNode();
+		double edgeLength = it->length();
+		
+		double fromMinDist = fromNode.minDistance + edgeLength;
+		double fromMaxDist = fromNode.maxDistance + edgeLength;
+		
+		if(minDist > fromMinDist) {
+			minPred = it;
+			minDist = fromMinDist;
 		}
-		if(/*realFlow &&*/outEdge->used()) {//BUG, TODO: This should fix a bug? Test it later.
-			if(!toNode->realFlow || maxDistance + edgeLength > toNode->maxDistance) {
-				toNode->maxDistance = maxDist + edgeLength;
-				toNode->maxPredecessor = outEdge;
-			}
-			toNode->realFlow = true;
-		} else if (!outEdge->toNode()->realFlow) {
-			if(maxDistance + edgeLength < toNode->maxDistance) {
-				toNode->maxDistance = maxDist + edgeLength;
-				toNode->maxPredecessor = outEdge;
-			}
+		if(it->used()) {
+			//Flow!
+			maxPred = it;
+			maxDist = fromMaxDist;
+			++it;
+			break;
+		} else if (maxDist > fromMaxDist) {
+			maxPred = it;
+			maxDist = fromMaxDist;
 		}
 	}
+	for(; it != end; ++it) {
+		//For when we know we have flow.
+		BushNode *fromNode = it->fromNode();
+		double edgeLength = it->length();
+
+		double fromMinDist = fromNode.minDistance + edgeLength;
+		double fromMaxDist = fromNode.maxDistance + edgeLength;
+		
+		if(minDist > fromMinDist) {
+			minPred = it;
+			minDist = fromMinDist;
+		}
+		if (it->used() && maxDist < fromMaxDist) {
+			maxPred = it;
+			maxDist = fromMaxDist;
+		}
+	}
+	maxDistance = maxDist;
+	minDistance = minDist;
+	maxPredecessor = maxPred;
+	minPredecessor = minPred;
+	//save our results
 }
 
 #endif
