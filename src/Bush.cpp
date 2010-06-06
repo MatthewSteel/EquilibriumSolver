@@ -32,10 +32,13 @@ origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), 
 {
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
+
 	setUpGraph();
-	//Sends out initial flow patterns (all-or-nothing):
-	buildTrees();
-	sendInitialFlows();
+	
+	buildTrees();//Sets up predecessors. Unnecessary if we do preds
+	//in Dijkstra.
+	
+	sendInitialFlows();//Sends out initial flow patterns (all-or-nothing)
 }
 
 void Bush::setUpGraph()
@@ -44,7 +47,9 @@ void Bush::setUpGraph()
 
 	graph.dijkstra(origin.getOrigin(), distanceMap, topologicalOrdering);
 
-	vector<BackwardGraphEdge>::iterator begin = graph.begin(), end=graph.end();
+	vector<ForwardGraphEdge>::iterator begin = graph.begin(), end=graph.end();
+	//Forward edges have all the nice info, unfortunately.
+	
 	/*
 	Our Dijkstra routine gives a proper topological ordering, consistent
 	even in the presence of zero-length arcs. Of course, the traffic
@@ -52,10 +57,10 @@ void Bush::setUpGraph()
 	solution in general, so it isn't really an issue that we aren't as
 	careful later on.
 	*/
-	for(vector<BackwardGraphEdge>::iterator iter = begin; iter != end; ++iter) {
-		unsigned toId = iter->getToId();
+	for(vector<ForwardGraphEdge>::iterator iter = begin; iter != end; ++iter) {
+		unsigned toId = iter->toNode()-&sharedNodes[0];
 		double toDistance = distanceMap.at(toId);
-		unsigned fromId = iter->fromNode()->getId();
+		unsigned fromId = iter->getInverse()->fromNode()-&sharedNodes[0];
 		double fromDistance = distanceMap.at(fromId);
 
 		if(toDistance + fromDistance == numeric_limits<double>::infinity()) continue;
@@ -64,28 +69,30 @@ void Bush::setUpGraph()
 		if(fromDistance < toDistance || (fromDistance == toDistance && fromId < toId)) {
 			//BUG: the fromId < toId thing is no good. FIXME, this
 			//condition should be (place[toId] < place[fromId]).
+			//(Needs a reverse topological ordering to do it that way.)
 			
 			//When we're finally done Dijkstra will just add the predecessors
 			//and we'll be away. (Dijkstra will be in this class then, no doubt)
 			
-			bush.at(fromId).push_back((BushEdge(graph.forward(&(*iter)))));
-			//Turning edges around may make this a little prettier.
+			bush.at(toId).push_back((BushEdge(iter->getInverse())));
 		}
 	}
 }
 
 void Bush::sendInitialFlows()
 {
+	BushNode *root = &sharedNodes.at(origin.getOrigin());
 	for(vector<pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
 		//For each origin,
 		BushNode* node = &sharedNodes.at(i->first);
-		while(node != &sharedNodes.at(origin.getOrigin())) {
+		while(node != root) {
 			//Flow back to the bush's root
-			node->getMinPredecessor()->addFlow(i->second);
-			BackwardGraphEdge* bge = graph.backward(node->getMinPredecessor()->underlyingEdge());
-			bge->addFlow(i->second);
-			node->getMinPredecessor()->underlyingEdge()->setDistance((*bge->costFunction())(bge->getFlow()));
-			node = bge->fromNode();
+			BushEdge *be = node->getMinPredecessor();
+			be->addFlow(i->second);
+			ForwardGraphEdge* fge = graph.forward(be->underlyingEdge());
+			fge->addFlow(i->second);
+			be->underlyingEdge()->setDistance((*fge->costFunction())(fge->getFlow()));
+			node = be->fromNode();
 		}
 	}
 }//Performs initial all-or-nothing flows in Bush, adding to both BushEdges and GraphEdges.
@@ -94,11 +101,11 @@ void Bush::printCrap()
 {
 	//Not really used, exists for debugging purposes if I really break something.
 	cout << "Printing  crap:" <<endl;
-	cout << "Out arcs:"<<endl;
+	cout << "In-arcs:"<<endl;
 	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
 		cout << i-sharedNodes.begin()+1 << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
 		for(BushEdge* j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
-			cout << " " << (j->toNodeId()+1) << "(" << (j->length()) << "," << (j->flow()) << ", " << (j->underlyingEdge()) << ") ";
+			cout << " " << (j->fromNodeId()+1) << "(" << (j->length()) << "," << (j->flow()) << ", " << (j->underlyingEdge()) << ") ";
 		}
 		cout << endl;
 	}
@@ -195,7 +202,7 @@ void Bush::topologicalSort()
 	vector<pair<double,unsigned> >::iterator storeEnd = tempStore.begin() + topologicalOrdering.size();
 	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); index != storeEnd; ++i, ++index) {
 		index->first = sharedNodes[*i].maxDist();
-		index->second = sharedNodes[*i].getId();
+		index->second = *i;
 	}
 	sort(tempStore.begin(), storeEnd);
 	
@@ -246,14 +253,16 @@ double Bush::allOrNothingCost()
 	buildTrees();// NOTE: Breaks constness. Grr. Make sharedNodes mutable?
 	
 	double cost = 0.0;
+	BushNode* root = &sharedNodes.at(origin.getOrigin());
 	for(vector<pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
 		//For each origin,
 		BushNode* node = &sharedNodes.at(i->first);
-		while(node != &sharedNodes.at(origin.getOrigin())) {
+		while(node != root) {
 			//Flow back to the bush's root
-			cost += i->second*node->getMinPredecessor()->length();
+			BushEdge *be = node->getMinPredecessor();
+			cost += i->second * be->length();
 			
-			node = graph.backward(node->getMinPredecessor()->underlyingEdge())->fromNode();
+			node = be->fromNode();
 		}
 	}
 	return cost;
@@ -266,7 +275,7 @@ double Bush::maxDifference() {
 	buildTrees();
 	double ret = 0.0;
 	for(std::vector<std::pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
-		if(ret < sharedNodes[i->first].getDifference()) ret = sharedNodes[i->first].getDifference();
+		ret = max(ret, sharedNodes[i->first].getDifference());
 	}
 	return ret;
 }

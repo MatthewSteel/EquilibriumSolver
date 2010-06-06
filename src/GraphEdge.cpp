@@ -24,31 +24,31 @@
 
 using namespace std;
 
-ForwardGraphEdge::ForwardGraphEdge(InputGraph::VDF i, BushNode *to) : to(to), _distance(i(0))
+BackwardGraphEdge::BackwardGraphEdge(InputGraph::VDF i, BushNode *from) : from(from), _distance(i(0))
 {}
 
-ForwardGraphEdge::ForwardGraphEdge(const ForwardGraphEdge & e) : to(e.to), _distance(e._distance)
+BackwardGraphEdge::BackwardGraphEdge(const BackwardGraphEdge & e) : from(e.from), _distance(e._distance)
 {}
 
-BackwardGraphEdge::BackwardGraphEdge(InputGraph::VDF i, BushNode *from, ForwardGraphEdge *e):
+ForwardGraphEdge::ForwardGraphEdge(InputGraph::VDF i, BushNode *to, BackwardGraphEdge *e):
 	inverse(e),
 	distanceFunction(i),
-	from(from),
-	toId(e->getToId()),
+	to(to),
+	fromId(e->getFromId()),//FIXME
 	flow(0)
 {}
 
-BackwardGraphEdge::BackwardGraphEdge(const BackwardGraphEdge& e):
+ForwardGraphEdge::ForwardGraphEdge(const ForwardGraphEdge& e):
 	inverse(e.inverse),
 	distanceFunction(e.distanceFunction),
-	from(e.from),
-	toId(e.toId),
+	to(e.to),
+	fromId(e.fromId),
 	flow(e.flow)
 {}
 
-unsigned ForwardGraphEdge::getToId() { return to->getId(); }
+unsigned BackwardGraphEdge::getFromId() { return from->getId(); }
 
-std::ostream& operator<<(std::ostream& o, BackwardGraphEdge& e) {
-	o << "Edge: (" << e.from->getId() << ", " << e.toId << "), flow: " << e.flow << ", cost: " << e.inverse->distance() << ", fge address: " << e.inverse;
+std::ostream& operator<<(std::ostream& o, ForwardGraphEdge& e) {
+	o << "Edge: (" << e.fromId << ", " << e.to->getId() << "), flow: " << e.flow << ", cost: " << e.inverse->distance() << ", fge address: " << e.inverse;
 	return o;
 }
