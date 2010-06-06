@@ -114,7 +114,7 @@ bool Bush::fix(double accuracy)
 	bool localFlowChanged = false;
 	do {
 		localFlowChanged = equilibriateFlows(accuracy) | localFlowChanged;
-	} while (!updateEdges());
+	} while (updateEdges());
 	return localFlowChanged;
 }
 
@@ -140,33 +140,28 @@ bool Bush::equilibriateFlows(double accuracy)
 
 void Bush::buildTrees()
 {
-	//Reset shared data
-	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i)
-		i->reset();
-	
 	sharedNodes[origin.getOrigin()].setDistance(0.0);
 
-	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin(); i < topologicalOrdering.end(); ++i) {
+	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin()+1; i < topologicalOrdering.end(); ++i) {
 		BushNode &v = sharedNodes[*i];
-		EdgeVector& outEdges = bush[*i];
-		v.updateOutDistances(outEdges);
+		EdgeVector& inEdges = bush[*i];
+		v.updateInDistances(inEdges);
 	}
 	
 }//Resets min, max distances, builds min/max trees.
 
 bool Bush::updateEdges()
 {
-	bool same = true;
+	bool changed = false;
 	
-	unsigned fromNode = 0;
-	for(vector<EdgeVector>::iterator i = bush.begin(); i != bush.end(); ++i, ++fromNode) {
-		if(!i->empty() && !updateEdges(*i, sharedNodes[fromNode].maxDist(), fromNode)) {
-			//TODO: remove the !i->empty()?
-			same = false;
-		}
+	unsigned toNode = 0;
+	for(vector<EdgeVector>::iterator i = bush.begin(); i != bush.end(); ++i, ++toNode) {
+		changed = changed | (!i->empty() && !updateEdges(*i, sharedNodes[toNode].maxDist(), toNode));
+		//TODO: remove the !i->empty()?
+		//NOTE: we want to short-circuit on the &&, but not the |.
 	}
-	if(!same) topologicalSort();
-	return same;
+	if(changed) topologicalSort();
+	return changed;
 }//Switches direction of things that need it.
 
 void Bush::topologicalSort()

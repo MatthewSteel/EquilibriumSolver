@@ -27,8 +27,9 @@
 
 using namespace std;
 
-BushNode::BushNode(unsigned id) : minDistance(numeric_limits<double>::infinity()), maxDistance(numeric_limits<double>::infinity()),  id(id), realFlow(false)
-{}
+BushNode::BushNode() :
+	minDistance(numeric_limits<double>::infinity()),
+	maxDistance(numeric_limits<double>::infinity()) {}
 
 bool BushNode::moreSeparatePaths(BushNode*& minNode, BushNode*& maxNode, ABGraph &graph)
 {

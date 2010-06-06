@@ -53,8 +53,7 @@ class Bush
 		
 		const Origin& origin;
 		std::vector<EdgeVector> bush;//Stores BushEdges, half the memory req of regular vectors.
-		//Used to be vec<vec<Edge*>> but now edges are lightweight, rarely move and the pointer is just extra storage.
-		//(We need to store ~50,000,000 of these. If we need to save space at the expense of running time we can probably cut that by 5 though.)
+		//Not storing pointers because these are only 16 bytes each (can cut to 12).
 		
 		std::vector<unsigned> topologicalOrdering;
 		
@@ -66,31 +65,30 @@ class Bush
 };
 
 //Inlined because we call this once per node per iteration, and spend 35% of our time in here.
-inline bool Bush::updateEdges(EdgeVector& outEdges, double maxDist, unsigned id)
+inline bool Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
 {
-	BushEdge* changeBegin = outEdges.begin(), *last = outEdges.end();
+	BushEdge* changeBegin = inEdges.begin(), *last = inEdges.end();
 	
-	//Partition outEdges into good, bad. Pretty sure std::partition didn't inline.
+	//Partition outEdges into good, bad. std::partition isn't inlining.
 	//As seen in quicksort etc.
 	while (true) {
-		while (changeBegin != last && changeBegin->toNode()->maxDist() >= maxDist) ++changeBegin;
+		while (changeBegin != last && changeBegin->fromNode()->maxDist() <= maxDist) ++changeBegin;
 		if (changeBegin == last--) break;
-		while (changeBegin != last && last->toNode()->maxDist() < maxDist) --last;
+		while (changeBegin != last && last->fromNode()->maxDist() > maxDist) --last;
 		if (changeBegin == last) break;
 		std::swap (*changeBegin++, *last);
 	}
 	
-	if(changeBegin == outEdges.end()) return true;
+	if(changeBegin == inEdges.end()) return true;
 	//No bad ones, we can  exit early.
 	
-	for(BushEdge* i = changeBegin; i != outEdges.end(); ++i) {
+	for(BushEdge* edge = changeBegin; edge != inEdges.end(); ++edge) {
 		
-		BushEdge& edge = (*i);
-		unsigned toId = edge.toNodeId();
+		unsigned fromId = edge->fromNode()-&sharedNodes[0];
 		edge.swapDirection(graph);
-		bush[toId].push_back(edge);
+		bush[fromId].push_back(edge);
 	}
-	outEdges.resize(outEdges.end()-changeBegin);
+	inEdges.resize(outEdges.end()-changeBegin);
 	//For all of the bad ones, switch their directions and remove them from the out-edge list.
 	return false;
 }

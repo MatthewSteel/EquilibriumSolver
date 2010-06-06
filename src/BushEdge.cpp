@@ -3,6 +3,6 @@
 
 void BushEdge::swapDirection(ABGraph &g) {
 
-	realEdge = g.backward(realEdge)->getInverse();
+	realEdge = g.forward(realEdge)->getInverse();
 
 }

@@ -33,21 +33,13 @@
 class BushNode
 {
 	public:
-		BushNode(unsigned);
+		BushNode();
 		void equilibriate(ABGraph&);
-		void updateOutDistances(EdgeVector&);
+		void updateInDistances(EdgeVector&);
 		double minDist() const { return minDistance; }
 		double maxDist() const { return maxDistance; }
-		unsigned getId() const { return id; }
 		double getDifference() const { return (maxDistance-minDistance); }
 		BushEdge* getMinPredecessor() { return minPredecessor; }
-		void reset() {
-			realFlow = false;
-			maxDistance = std::numeric_limits<double>::infinity();
-			//trust me
-			minDistance = std::numeric_limits<double>::infinity();
-			minPredecessor = maxPredecessor = 0;
-		}
 		void setDistance(double d) { minDistance = maxDistance = d; }
 	private:
 		bool moreSeparatePaths(BushNode*&, BushNode*&, ABGraph&);
@@ -60,17 +52,18 @@ class BushNode
 		
 		double minDistance;
 		double maxDistance;
-
-		unsigned id;
-		//TODO: Remove id, if we can.
 };
 
 /*
 This function inlined because it's called many, many times, and we spend quite
-a bit of time in it. ~60%?
-Could think about threading it, 
+a bit of our time in it. Around 60%, last measured.
+Could think about threading it, not interleaving min- and max- predecessor
+calculations etc. Only scales to 2 threads, though, and we'd have to thread
+updateEdges (and possibly topo-sort) as well to make it worthwhile. Still, for
+two threads that beats some other ideas. Don't sacrifice any convergence per
+iteration.
 */
-inline void BushNode::updateOutDistances(EdgeVector& outEdges)
+inline void BushNode::updateInDistances(EdgeVector& outEdges)
 {
 	/*
 	Our rules are as follows:
