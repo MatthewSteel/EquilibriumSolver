@@ -43,8 +43,8 @@ class BushNode
 		void setDistance(double d) { minDistance = maxDistance = d; }
 	private:
 		bool moreSeparatePaths(BushNode*&, BushNode*&, ABGraph&);
-		void fixDifferentPaths(std::vector<std::pair<BushEdge*, BackwardGraphEdge*> >&,
-				       std::vector<std::pair<BushEdge*, BackwardGraphEdge*> >&, double);
+		void fixDifferentPaths(std::vector<std::pair<BushEdge*, ForwardGraphEdge*> >&,
+				       std::vector<std::pair<BushEdge*, ForwardGraphEdge*> >&, double);
 		
 		BushEdge* minPredecessor;
 		BushEdge* maxPredecessor;

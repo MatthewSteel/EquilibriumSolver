@@ -37,23 +37,25 @@ bool BushNode::moreSeparatePaths(BushNode*& minNode, BushNode*& maxNode, ABGraph
 	while(true) {
 		if(minNode->minDistance == minNode->maxDistance) return false;//path joins to root
 		else if(minNode->minPredecessor == maxNode->maxPredecessor) {
-			minNode = graph.backward(minNode->minPredecessor->underlyingEdge())->fromNode();
-			maxNode = graph.backward(maxNode->maxPredecessor->underlyingEdge())->fromNode();
+			minNode = minNode->minPredecessor->fromNode();
+			maxNode = maxNode->maxPredecessor->fromNode();
 		} else return true;//New segments to equilibriate: min/max predecessors are different.
 	}
 }//Ignore min/max paths that coincide
 
 
-void BushNode::fixDifferentPaths(vector<pair<BushEdge*, BackwardGraphEdge*> >& minEdges,
-                                 vector<pair<BushEdge*, BackwardGraphEdge*> >& maxEdges, double maxChange)
+void BushNode::fixDifferentPaths(
+               vector<pair<BushEdge*, ForwardGraphEdge*> >& minEdges,
+               vector<pair<BushEdge*, ForwardGraphEdge*> >& maxEdges,
+               double maxChange)
 {
 
 	ABAdder hp;
-	for(vector<pair<BushEdge*, BackwardGraphEdge*> >::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
+	for(vector<pair<BushEdge*, ForwardGraphEdge*> >::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
 		hp -= make_pair(i->second->costFunction(), i->second->getFlow());
 	}
 	
-	for(vector<pair<BushEdge*, BackwardGraphEdge*> >::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
+	for(vector<pair<BushEdge*, ForwardGraphEdge*> >::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
 		hp += make_pair(i->second->costFunction(), i->second->getFlow());
 	}
 	SecantSolver<ABAdder> solver;
@@ -64,12 +66,12 @@ void BushNode::fixDifferentPaths(vector<pair<BushEdge*, BackwardGraphEdge*> >& m
 	if(newFlow > maxChange) newFlow = maxChange;
 	//Wait, is this done in the solver now?
 	
-	for(vector<pair<BushEdge*, BackwardGraphEdge*> >::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
+	for(vector<pair<BushEdge*, ForwardGraphEdge*> >::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
 		i->first->addFlow(newFlow);
 		i->second->addFlow(newFlow);
 		i->first->underlyingEdge()->setDistance((*i->second->costFunction())(i->second->getFlow()));
 	}
-	for(vector<pair<BushEdge*, BackwardGraphEdge*> >::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
+	for(vector<pair<BushEdge*, ForwardGraphEdge*> >::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
 		i->first->addFlow(-newFlow);
 		i->second->addFlow(-newFlow);
 		i->first->underlyingEdge()->setDistance((*i->second->costFunction())(i->second->getFlow()));
@@ -88,8 +90,8 @@ void BushNode::equilibriate(ABGraph& graph)
 	BushNode* maxNode = this;
 
 	while (true) {
-		vector<pair<BushEdge*, BackwardGraphEdge*> > minEdges;
-		vector<pair<BushEdge*, BackwardGraphEdge*> > maxEdges;
+		vector<pair<BushEdge*, ForwardGraphEdge*> > minEdges;
+		vector<pair<BushEdge*, ForwardGraphEdge*> > maxEdges;
 		double maxChange = numeric_limits<double>::infinity();
 		
 		
@@ -99,15 +101,15 @@ void BushNode::equilibriate(ABGraph& graph)
 		do { //Trace separate paths back, adding arcs to lists
 			if(minNode->maxDistance >= maxNode->maxDistance) {
 				BushEdge* pred = minNode->minPredecessor;
-				BackwardGraphEdge* bge = graph.backward(pred->underlyingEdge());
-				minEdges.push_back(make_pair(pred, bge));
-				minNode = bge->fromNode();
+				ForwardGraphEdge* fge = graph.forward(pred->underlyingEdge());
+				minEdges.push_back(make_pair(pred, fge));
+				minNode = pred->fromNode();
 			} else {
 				BushEdge* pred = maxNode->maxPredecessor;
-				BackwardGraphEdge* bge = graph.backward(pred->underlyingEdge());
+				ForwardGraphEdge* fge = graph.forward(pred->underlyingEdge());
 				maxChange = min(maxChange, pred->flow());
-				maxEdges.push_back(make_pair(pred, bge));
-				maxNode = bge->fromNode();
+				maxEdges.push_back(make_pair(pred, fge));
+				maxNode = pred->fromNode();
 			}
 		} while(minNode->id != maxNode->id);
 		if(maxChange > 1e-12) fixDifferentPaths(minEdges, maxEdges, maxChange);
