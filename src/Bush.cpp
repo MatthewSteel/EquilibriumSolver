@@ -102,13 +102,18 @@ void Bush::printCrap()
 	//Not really used, exists for debugging purposes if I really break something.
 	cout << "Printing  crap:" <<endl;
 	cout << "In-arcs:"<<endl;
+	
 	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
+
 		cout << i-sharedNodes.begin()+1 << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
+
 		for(BushEdge* j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
-			cout << " " << (j->fromNodeId()+1) << "(" << (j->length()) << "," << (j->flow()) << ", " << (j->underlyingEdge()) << ") ";
+			cout << " " << ((j->fromNode()-&sharedNodes[0])+1) <<
+			        "(" << (j->length()) << "," << (j->flow()) << ") ";
 		}
 		cout << endl;
 	}
+
 	cout << "Topological Ordering:" << endl;
 	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin(); i != topologicalOrdering.end(); ++i)
 		cout << *i+1 << " ";

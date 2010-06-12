@@ -39,7 +39,6 @@ class BackwardGraphEdge
 		BackwardGraphEdge(InputGraph::VDF, BushNode *from);
 		BackwardGraphEdge(const BackwardGraphEdge & e);
 
-		unsigned getFromId();
 		double distance() const { return _distance; }
 		void setDistance(double d) { _distance = d; }
 		BushNode* fromNode() { return to; }
@@ -58,7 +57,6 @@ class ForwardGraphEdge
 		const InputGraph::VDF* costFunction() const { return &distanceFunction; }
 
 		BushNode* toNode() { return to; }
-		unsigned getFromId() const { return fromId; }
 
 		void setInverse(BackwardGraphEdge* ge) { inverse = ge; }
 		BackwardGraphEdge* getInverse() { return inverse; }
@@ -66,13 +64,11 @@ class ForwardGraphEdge
 			flow += d;
 		}//TODO: add dist to BGE?
 		double getFlow() const { return flow; }
-		friend std::ostream& operator<<(std::ostream& o, ForwardGraphEdge& e);
 	private:
 		InputGraph::VDF distanceFunction;//Dang, 32 bytes in GCC!?
 		BackwardGraphEdge* inverse;
 		BushNode* to;
 		double flow;
-		unsigned fromId;
 };
 
 #endif

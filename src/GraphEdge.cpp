@@ -45,10 +45,3 @@ ForwardGraphEdge::ForwardGraphEdge(const ForwardGraphEdge& e):
 	fromId(e.fromId),
 	flow(e.flow)
 {}
-
-unsigned BackwardGraphEdge::getFromId() { return from->getId(); }
-
-std::ostream& operator<<(std::ostream& o, ForwardGraphEdge& e) {
-	o << "Edge: (" << e.fromId << ", " << e.to->getId() << "), flow: " << e.flow << ", cost: " << e.inverse->distance() << ", fge address: " << e.inverse;
-	return o;
-}

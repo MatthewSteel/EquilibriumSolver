@@ -73,11 +73,6 @@ class BushEdge
 		BushNode* fromNode() const { return realEdge->fromNode(); }
 
 		/**
-		 * TODO
-		 */
-		unsigned fromNodeId() const { return realEdge->getFromId(); }
-
-		/**
 		 * Turns the arc around. We assume a topological sort will
 		 * occur after this, and no other bush data is affected.
 		 * If the bush-specific flow is not zero the solution loses
