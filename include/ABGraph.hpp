@@ -41,7 +41,7 @@ executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 class ABGraph
 {
 	private:
-		std::vector<std::vector<unsigned> > edgeStructure;
+		std::vector<std::vector<unsigned> > edgeStructure;//still forwards
 		std::vector<ForwardGraphEdge> forwardStorage;
 		std::vector<BackwardGraphEdge> backwardStorage;
 		
@@ -55,9 +55,15 @@ class ABGraph
 		 * Adds an edge. To-node and from-node are retrieved from the
 		 * parameter's data if they're necessary.
 		 */
-		void addEdge(unsigned from, unsigned to, InputGraph::VDF func = HornerPolynomial(std::vector<double>(1, std::numeric_limits<double>::infinity()))) {
-			forwardStorage.push_back(ForwardGraphEdge(func, &nodeStorage.at(to)));
-			backwardStorage.push_back(BackwardGraphEdge(func, &nodeStorage.at(from), &forwardStorage.back()));
+		void addEdge(unsigned from, unsigned to,
+		             InputGraph::VDF func = HornerPolynomial(
+		                 std::vector<double>(1,
+		                     std::numeric_limits<double>::infinity()
+		                 )
+		             )
+		) {
+			backwardStorage.push_back(BackwardGraphEdge(func, &nodeStorage.at(from)));
+			forwardStorage.push_back(ForwardGraphEdge(func, &nodeStorage.at(to), &backwardStorage.back()));
 			
 			edgeStructure.at(from).push_back(forwardStorage.size()-1);
 		}
@@ -74,7 +80,7 @@ class ABGraph
 		 */
 		unsigned edge(unsigned from, unsigned to) const {
 			for(std::vector<unsigned>::const_iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
-				if(backwardStorage[*i].getToId() == to) return (*i);
+				if(forwardStorage[*i].toNode()-&nodeStorage[0] == to) return (*i);
 			}
 			throw "Edge does not exist";
 		}//Not worth doing a binary search because traffic networks are so sparse
@@ -99,16 +105,16 @@ class ABGraph
 		 * Returns an EdgeIterator pointing to the "first" out-edge
 		 * of the "first" vertex of the ABGraph.
 		 */
-		std::vector<BackwardGraphEdge>::iterator begin() {
-			return backwardStorage.begin();
+		std::vector<ForwardGraphEdge>::iterator begin() {
+			return forwardStorage.begin();
 		}
 
 		/**
 		 * Returns an EdgeIterator pointing just past the "last"
 		 * out-edge of the "last" vertex of the ABGraph.
 		 */
-		std::vector<BackwardGraphEdge>::iterator end() {
-			return backwardStorage.end();
+		std::vector<ForwardGraphEdge>::iterator end() {
+			return forwardStorage.end();
 		}
 		
 		BackwardGraphEdge* backward(const ForwardGraphEdge* f) {
@@ -129,7 +135,7 @@ class ABGraph
 			std::vector<ForwardGraphEdge>::const_iterator i = forwardStorage.begin();
 			std::vector<BackwardGraphEdge>::const_iterator j = backwardStorage.begin();
 			for(; i != forwardStorage.end(); ++i, ++j)
-				if(j->getFlow() != 0) cost += j->getFlow()*i->distance();
+				if(i->getFlow() != 0) cost += i->getFlow()*j->distance();
 				//0 flow could mean imaginary arc, in which case 0*infinity = NaN.
 			return cost;
 		}
@@ -140,13 +146,13 @@ class ABGraph
 		//FIXME: Is this used? It seems kinda bad for it to be public, non-const.
 		std::vector<BushNode>& nodes() { return nodeStorage; }
 		
-		friend std::ostream& operator<<(std::ostream& o, ABGraph & g) {
+/*		friend std::ostream& operator<<(std::ostream& o, ABGraph & g) {
 			for(std::vector<BackwardGraphEdge>::iterator i = g.backwardStorage.begin(); i != g.backwardStorage.end(); ++i) {
 				o << *i << std::endl;
 			}
 			return o;
 		}
-		
+		*/
 };
 
 #endif

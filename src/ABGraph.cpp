@@ -67,10 +67,13 @@ ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdg
 	}
 
 	//Set up edge inverses
-	for(vector<BackwardGraphEdge>::iterator i = backwardStorage.begin(); i != backwardStorage.end(); ++i) {
-		unsigned fromNodeId = i->fromNode()->getId();
-		unsigned toNodeId = forward(&(*i))->toNode()->getId();
-		i->setInverse(&forwardStorage[edge(toNodeId, fromNodeId)]);
+	
+	for(vector<ForwardGraphEdge>::iterator i = forwardStorage.begin(),
+	    vector<BackwardGraphEdge>::iterator j= backwardStorage.begin();
+	    i != forwardStorage.end(); ++i, ++j) {
+		unsigned toNodeId = &(i->toNode())-&nodeStorage[0];
+		unsigned fromNodeId = &(j->fromNode())-&nodeStorage[0];
+		i->setInverse(&backwardStorage[edge(toNodeId, fromNodeId)]);
 	}
 }
 
@@ -100,9 +103,10 @@ void ABGraph::dijkstra(unsigned origin, vector<double>& distances, vector<unsign
 		
 			for(vector<unsigned>::iterator i = edgeStructure[id].begin(); i != edgeStructure[id].end(); ++i) {
 				ForwardGraphEdge& fge = forwardStorage[*i];
-				if(distances[fge.getToId()] == unvisited) {
+				unsigned toNodeId = fge.toNode()-&nodeStorage[0];
+				if(distances[toNodeId] == unvisited) {
 					//If statement unnecessary, but cuts runtime by 1/3
-					queue.push(make_pair(distance - fge.distance(), fge.getToId()));
+					queue.push(make_pair(distance - fge.distance(), toNodeId));
 					//(dist - len) instead of (dist + len) because it's a max-queue (we want the min)
 				}
 			}
