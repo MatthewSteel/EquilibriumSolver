@@ -27,8 +27,9 @@
 #include <utility>
 
 #include "BushEdge.hpp"
-#include "ABGraph.hpp"
 #include "EdgeVector.hpp"
+
+class ABGraph;
 
 class BushNode
 {
@@ -101,8 +102,8 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 		BushNode *fromNode = it->fromNode();
 		double edgeLength = it->length();
 		
-		double fromMinDist = fromNode.minDistance + edgeLength;
-		double fromMaxDist = fromNode.maxDistance + edgeLength;
+		double fromMinDist = fromNode->minDistance + edgeLength;
+		double fromMaxDist = fromNode->maxDistance + edgeLength;
 		
 		if(minDist > fromMinDist) {
 			minPred = it;
@@ -124,8 +125,8 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 		BushNode *fromNode = it->fromNode();
 		double edgeLength = it->length();
 
-		double fromMinDist = fromNode.minDistance + edgeLength;
-		double fromMaxDist = fromNode.maxDistance + edgeLength;
+		double fromMinDist = fromNode->minDistance + edgeLength;
+		double fromMaxDist = fromNode->maxDistance + edgeLength;
 		
 		if(minDist > fromMinDist) {
 			minPred = it;

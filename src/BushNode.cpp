@@ -24,6 +24,7 @@
 #include "SecantSolver.hpp"
 #include <iostream>
 #include "ABAdder.hpp"
+#include "ABGraph.hpp"
 
 using namespace std;
 
@@ -111,7 +112,7 @@ void BushNode::equilibriate(ABGraph& graph)
 				maxEdges.push_back(make_pair(pred, fge));
 				maxNode = pred->fromNode();
 			}
-		} while(minNode->id != maxNode->id);
+		} while(minNode != maxNode);
 		if(maxChange > 1e-12) fixDifferentPaths(minEdges, maxEdges, maxChange);
 	}
 	//Probably the ugliest function in the program now.

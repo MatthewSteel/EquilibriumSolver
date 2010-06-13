@@ -34,7 +34,6 @@ ForwardGraphEdge::ForwardGraphEdge(InputGraph::VDF i, BushNode *to, BackwardGrap
 	inverse(e),
 	distanceFunction(i),
 	to(to),
-	fromId(e->getFromId()),//FIXME
 	flow(0)
 {}
 
@@ -42,6 +41,5 @@ ForwardGraphEdge::ForwardGraphEdge(const ForwardGraphEdge& e):
 	inverse(e.inverse),
 	distanceFunction(e.distanceFunction),
 	to(e.to),
-	fromId(e.fromId),
 	flow(e.flow)
 {}

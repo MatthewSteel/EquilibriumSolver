@@ -85,10 +85,10 @@ inline bool Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
 	for(BushEdge* edge = changeBegin; edge != inEdges.end(); ++edge) {
 		
 		unsigned fromId = edge->fromNode()-&sharedNodes[0];
-		edge.swapDirection(graph);
-		bush[fromId].push_back(edge);
+		edge->swapDirection(graph);
+		bush[fromId].push_back(*edge);
 	}
-	inEdges.resize(outEdges.end()-changeBegin);
+	inEdges.resize(inEdges.end()-changeBegin);
 	//For all of the bad ones, switch their directions and remove them from the out-edge list.
 	return false;
 }

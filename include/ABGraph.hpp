@@ -78,7 +78,7 @@ class ABGraph
 		/**
 		 * Simple structure query, returns index of edges between two nodes.
 		 */
-		unsigned edge(unsigned from, unsigned to) const {
+		unsigned edge(unsigned from, unsigned to) {
 			for(std::vector<unsigned>::const_iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
 				if(forwardStorage[*i].toNode()-&nodeStorage[0] == to) return (*i);
 			}

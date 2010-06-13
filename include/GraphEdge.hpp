@@ -41,7 +41,7 @@ class BackwardGraphEdge
 
 		double distance() const { return _distance; }
 		void setDistance(double d) { _distance = d; }
-		BushNode* fromNode() { return to; }
+		BushNode* fromNode() { return from; }
 	private:
 		friend class ForwardGraphEdge;
 		BushNode* from;
