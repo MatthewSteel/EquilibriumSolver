@@ -35,6 +35,7 @@ origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), 
 
 	setUpGraph();
 	
+	
 	buildTrees();//Sets up predecessors. Unnecessary if we do preds
 	//in Dijkstra.
 	
@@ -58,11 +59,11 @@ void Bush::setUpGraph()
 	careful later on.
 	*/
 	for(vector<ForwardGraphEdge>::iterator iter = begin; iter != end; ++iter) {
+		
 		unsigned toId = iter->toNode()-&sharedNodes[0];
 		double toDistance = distanceMap.at(toId);
-		unsigned fromId = iter->getInverse()->fromNode()-&sharedNodes[0];
+		unsigned fromId = graph.backward(&*iter)->fromNode()-&sharedNodes[0];
 		double fromDistance = distanceMap.at(fromId);
-
 		if(toDistance + fromDistance == numeric_limits<double>::infinity()) continue;
 		//Ignore edges around unreachable nodes.
 		
@@ -74,7 +75,7 @@ void Bush::setUpGraph()
 			//When we're finally done Dijkstra will just add the predecessors
 			//and we'll be away. (Dijkstra will be in this class then, no doubt)
 			
-			bush.at(toId).push_back((BushEdge(iter->getInverse())));
+			bush.at(toId).push_back((BushEdge(graph.backward(&*iter))));
 		}
 	}
 }

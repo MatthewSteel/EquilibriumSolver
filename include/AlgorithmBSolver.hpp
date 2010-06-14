@@ -70,10 +70,10 @@ class AlgorithmBSolver
 		//Ugh, remnants of old debugging?
 		//Doesn't print anything good most of the time now, considering node/edge data is all shared now across bushes.
 		
-		friend std::ostream& operator<<(std::ostream& o, AlgorithmBSolver & abs) {
-			o << abs.graph;
-			return o;
-		}
+//		friend std::ostream& operator<<(std::ostream& o, AlgorithmBSolver & abs) {
+//			o << abs.graph;
+//			return o;
+//		}
 		
 		
 		/**

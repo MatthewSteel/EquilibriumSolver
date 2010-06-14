@@ -97,7 +97,8 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 	BushEdge* it;
 	BushEdge* end = outEdges.end();
 
-	for(it = outEdges.begin(); it != end && !it->used(); ++it) {
+	for(it = outEdges.begin(); it != end; ++it) {
+		
 		//No flow to date.
 		BushNode *fromNode = it->fromNode();
 		double edgeLength = it->length();

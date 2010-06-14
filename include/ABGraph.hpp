@@ -61,7 +61,7 @@ class ABGraph
 		                     std::numeric_limits<double>::infinity()
 		                 )
 		             )
-		) {
+		) {;
 			backwardStorage.push_back(BackwardGraphEdge(func, &nodeStorage.at(from)));
 			forwardStorage.push_back(ForwardGraphEdge(func, &nodeStorage.at(to), &backwardStorage.back()));
 			
