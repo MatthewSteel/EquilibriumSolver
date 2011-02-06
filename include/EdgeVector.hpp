@@ -36,6 +36,7 @@ class EdgeVector {
 			} else return _begin[i];
 		}
 		bool empty() { return size==0; }
+		int length() { return size; }
 	private:
 		BushEdge* _begin;
 		unsigned size;

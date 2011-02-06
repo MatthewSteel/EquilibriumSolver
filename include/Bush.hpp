@@ -29,6 +29,7 @@
 
 #include <vector>
 #include <utility>
+#include <iostream>
 
 class Bush
 {
@@ -50,6 +51,7 @@ class Bush
 		//Makes sure all our edges are pointing in the right direction, and we're sorted well.
 		void setUpGraph();
 		void topologicalSort();
+		void applyBushEdgeChanges();
 		
 		const Origin& origin;
 		std::vector<EdgeVector> bush;//Stores BushEdges, half the memory req of regular vectors.
@@ -62,6 +64,8 @@ class Bush
 		std::vector<std::pair<double, unsigned> >& tempStore;//Used in topo sort, don't want to waste the alloc/dealloc time.
 		
 		ABGraph& graph;
+		
+		std::vector<std::pair<unsigned, unsigned> > changes;//BushEdges to reverse
 };
 
 //Inlined because we call this once per node per iteration, and spend 35% of our time in here.
@@ -71,26 +75,12 @@ inline bool Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
 	
 	//Partition outEdges into good, bad. std::partition isn't inlining.
 	//As seen in quicksort etc.
-	while (true) {
-		while (changeBegin != last && changeBegin->fromNode()->maxDist() <= maxDist) ++changeBegin;
-		if (changeBegin == last--) break;
-		while (changeBegin != last && last->fromNode()->maxDist() > maxDist) --last;
-		if (changeBegin == last) break;
-		std::swap (*changeBegin++, *last);
-	}
-	
-	if(changeBegin == inEdges.end()) return true;
-	//No bad ones, we can  exit early.
-	
-	for(BushEdge* edge = changeBegin; edge != inEdges.end(); ++edge) {
+	for(; changeBegin != last; ++changeBegin) {
+		if(changeBegin->fromNode()->maxDist() > maxDist) {
+			changes.push_back(std::make_pair(id, changeBegin - inEdges.begin()));
+		}
 		
-		unsigned fromId = edge->fromNode()-&sharedNodes[0];
-		edge->swapDirection(graph);
-		bush[fromId].push_back(*edge);
 	}
-	inEdges.resize(inEdges.end()-changeBegin);
-	//For all of the bad ones, switch their directions and remove them from the out-edge list.
-	return false;
 }
 
 #endif

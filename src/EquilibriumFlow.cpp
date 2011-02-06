@@ -68,12 +68,12 @@ class func {
 
 int main (int argc, char **argv)
 {
-	general("networks/ChicagoSketch_net.txt", "networks/ChicagoSketch_trips.txt", 0.04, 0.02);
+//	general("networks/ChicagoSketch_net.txt", "networks/ChicagoSketch_trips.txt", 0.04, 0.02);
 //	general("networks/Braess_net.txt", "networks/Braess_trips.txt");
 //	general("networks/Auckland_net2.txt", "networks/Auckland_trips.txt");
 //	general("networks/SiouxFalls_net.txt", "networks/SiouxFalls_trips.txt");
 //	general("networks/Anaheim_net.txt", "networks/Anaheim_trips.txt");
-//	general("networks/ChicagoRegional_net.txt", "networks/ChicagoRegional_trips.txt", 0.25, 0.1, 1e-2);
+	general("networks/ChicagoRegional_net.txt", "networks/ChicagoRegional_trips.txt", 0.25, 0.1, 1e-5);
 //	general("networks/Philadelphia_network.txt", "networks/Philadelphia_trips.txt", 0.0, 0.055, 1e-4);//Known BUG: Doesn't quite work just yet.
 /*
 	InputGraph g;

@@ -89,6 +89,7 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 	I'm doing." Loading data early, storing it at the end, all that stuff.
 	Will still want to look at the generated ASM, though.
 	*/
+
 	BushEdge* minPred = 0;
 	BushEdge* maxPred = 0;
 	double minDist = std::numeric_limits<double>::infinity();
@@ -138,6 +139,7 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 			maxDist = fromMaxDist;
 		}
 	}
+
 	maxDistance = maxDist;
 	minDistance = minDist;
 	maxPredecessor = maxPred;

@@ -33,13 +33,18 @@ origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), 
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
 
+//	cout << "Setting up graph" << endl;
 	setUpGraph();
 	
-	
+//	cout << "Building trees" << endl;
 	buildTrees();//Sets up predecessors. Unnecessary if we do preds
 	//in Dijkstra.
 	
+//	cout << "Sending initial flows" << endl;
 	sendInitialFlows();//Sends out initial flow patterns (all-or-nothing)
+	
+	changes.clear();
+//	cout << "Done" << endl;
 }
 
 void Bush::setUpGraph()
@@ -153,29 +158,71 @@ bool Bush::equilibriateFlows(double accuracy)
 
 void Bush::buildTrees()
 {
+	
 	sharedNodes[origin.getOrigin()].setDistance(0.0);
 
-	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin()+1; i < topologicalOrdering.end(); ++i) {
-		BushNode &v = sharedNodes[*i];
-		EdgeVector& inEdges = bush[*i];
-		v.updateInDistances(inEdges);
-	}
 	
+	changes.clear();
+	unsigned topoIndex = 0;
+	
+	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin()+1; i < topologicalOrdering.end(); ++i, ++topoIndex) {
+		unsigned id = *i;
+		BushNode &v = sharedNodes[id];
+		EdgeVector& inEdges = bush[id];
+		v.updateInDistances(inEdges);
+		
+		if(!inEdges.empty()) updateEdges(inEdges, v.maxDist(), id);
+	}
 }//Resets min, max distances, builds min/max trees.
 
 bool Bush::updateEdges()
 {
-	bool changed = false;
-	
-	unsigned toNode = 0;
-	for(vector<EdgeVector>::iterator i = bush.begin(); i != bush.end(); ++i, ++toNode) {
-		changed = changed | (!i->empty() && !updateEdges(*i, sharedNodes[toNode].maxDist(), toNode));
-		//TODO: remove the !i->empty()?
-		//NOTE: we want to short-circuit on the &&, but not the |.
+	if(!changes.empty()) {
+		applyBushEdgeChanges();
+		topologicalSort();
+		changes.clear();
+		return true;
 	}
-	if(changed) topologicalSort();
-	return changed;
+	return false;
 }//Switches direction of things that need it.
+
+void Bush::applyBushEdgeChanges()
+{
+	cout << "Applying changes:"<<endl;
+	for(int i = 0; i < changes.size(); ++i) {
+		cout << changes[i].first << "\t" << changes[i].second <<endl;
+	}
+	
+	typedef vector<pair<unsigned, unsigned> >::iterator it;
+	for(it i = changes.begin(); i != changes.end();) {
+//		cout << "i: " << i-changes.begin() << endl;
+		unsigned node = i->first;
+		it j;
+		for(j=i+1; j != changes.end() && j->first == node; ++j);
+//		cout << "j: " << j-changes.begin() << endl;
+		EdgeVector& inEdges = bush[node];
+		
+		int l = inEdges.length()-(j-i);
+		it m = j-1;
+		
+//		cout << "l: " << l<< ", inEdges.length: " << inEdges.length() << endl;
+		
+		for(int k = inEdges.length()-1; l <= k; --k, --m) {
+			std::swap(inEdges[k], inEdges[m->second]);
+//			cout << "Swapping elements " << k << " and " << m->second << endl;
+		}//Move edges to be inverted to the end.
+		
+		for(int k = l; k != inEdges.length(); ++k) {
+			BushEdge& edge = inEdges[k];
+			unsigned fromID = edge.fromNode()-&sharedNodes[0];
+//			cout << "fromID was " << fromID << endl;
+			edge.swapDirection(graph);
+			bush[fromID].push_back(edge);
+		}
+		inEdges.resize(l);
+		i=j;
+	}
+}
 
 void Bush::topologicalSort()
 {
