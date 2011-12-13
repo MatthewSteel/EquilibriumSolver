@@ -33,50 +33,50 @@ origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), 
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
 
-//	cout << "Setting up graph" << endl;
 	setUpGraph();
-	
-//	cout << "Building trees" << endl;
 	buildTrees();//Sets up predecessors. Unnecessary if we do preds
 	//in Dijkstra.
 	
-//	cout << "Sending initial flows" << endl;
 	sendInitialFlows();//Sends out initial flow patterns (all-or-nothing)
 	
 	changes.clear();
-//	cout << "Done" << endl;
 }
 
 void Bush::setUpGraph()
 {
-	vector<double> distanceMap(graph.numVertices(), numeric_limits<double>::infinity());
-
+	vector<unsigned> distanceMap(graph.numVertices(), -1);
+		//position of node i in topologicalOrdering
+		//Set up in Dijkstra
+	
 	graph.dijkstra(origin.getOrigin(), distanceMap, topologicalOrdering);
-
+	
 	vector<ForwardGraphEdge>::iterator begin = graph.begin(), end=graph.end();
 	//Forward edges have all the nice info, unfortunately.
 	
 	/*
 	Our Dijkstra routine gives a proper topological ordering, consistent
-	even in the presence of zero-length arcs. Of course, the traffic
-	assignment problem zero-length arcs does not have a unique link-flow
+	even in the presence of zero-length arcs. I think. Of course, the traffic
+	assignment problem with zero-length arcs does not have a unique link-flow
 	solution in general, so it isn't really an issue that we aren't as
 	careful later on.
 	*/
+	
+	//TEST: destination unreachable from origin.
+	for(vector<pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
+		if(distanceMap.at(i->first) == -1)
+			std::cout << "Unreachable dest: origin " << origin.getOrigin() << ", dest " << i->first << std::endl;
+	}
+	
 	for(vector<ForwardGraphEdge>::iterator iter = begin; iter != end; ++iter) {
 		
 		unsigned toId = iter->toNode()-&sharedNodes[0];
-		double toDistance = distanceMap.at(toId);
+		unsigned toPosition = distanceMap.at(toId);
 		unsigned fromId = graph.backward(&*iter)->fromNode()-&sharedNodes[0];
-		double fromDistance = distanceMap.at(fromId);
-		if(toDistance + fromDistance == numeric_limits<double>::infinity()) continue;
-		//Ignore edges around unreachable nodes.
+		unsigned fromPosition = distanceMap.at(fromId);
+		if(toPosition == -1 || fromPosition == -1) continue;
+		//Ignore edges to/from unreachable nodes.
 		
-		if(fromDistance < toDistance || (fromDistance == toDistance && fromId < toId)) {
-			//BUG: the fromId < toId thing is no good. FIXME, this
-			//condition should be (place[toId] < place[fromId]).
-			//(Needs a reverse topological ordering to do it that way.)
-			
+		if(fromPosition < toPosition) {
 			//When we're finally done Dijkstra will just add the predecessors
 			//and we'll be away. (Dijkstra will be in this class then, no doubt)
 			
@@ -111,10 +111,10 @@ void Bush::printCrap()
 	
 	for(vector<BushNode>::iterator i = sharedNodes.begin(); i != sharedNodes.end(); ++i) {
 
-		cout << i-sharedNodes.begin()+1 << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
+		cout << i-sharedNodes.begin() << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
 
 		for(BushEdge* j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
-			cout << " " << ((j->fromNode()-&sharedNodes[0])+1) <<
+			cout << " " << ((j->fromNode()-&sharedNodes[0])) <<
 			        "(" << (j->length()) << "," << (j->flow()) << ") ";
 		}
 		cout << endl;
@@ -122,13 +122,12 @@ void Bush::printCrap()
 
 	cout << "Topological Ordering:" << endl;
 	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin(); i != topologicalOrdering.end(); ++i)
-		cout << *i+1 << " ";
+		cout << *i << " ";
 	cout << endl;
 }
 
 bool Bush::fix(double accuracy)
 {
-	
 	bool localFlowChanged = false;
 	do {
 		localFlowChanged = equilibriateFlows(accuracy) | localFlowChanged;
@@ -158,20 +157,18 @@ bool Bush::equilibriateFlows(double accuracy)
 
 void Bush::buildTrees()
 {
-	
-	sharedNodes[origin.getOrigin()].setDistance(0.0);
 
+	sharedNodes[origin.getOrigin()].setDistance(0.0);
 	
-	changes.clear();
+	changes.clear();//Just in case, forget any edges need turning around
 	unsigned topoIndex = 0;
-	
 	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin()+1; i < topologicalOrdering.end(); ++i, ++topoIndex) {
 		unsigned id = *i;
 		BushNode &v = sharedNodes[id];
 		EdgeVector& inEdges = bush[id];
 		v.updateInDistances(inEdges);
 		
-		if(!inEdges.empty()) updateEdges(inEdges, v.maxDist(), id);
+		updateEdges(inEdges, v.maxDist(), id);
 	}
 }//Resets min, max distances, builds min/max trees.
 
@@ -188,39 +185,35 @@ bool Bush::updateEdges()
 
 void Bush::applyBushEdgeChanges()
 {
-	cout << "Applying changes:"<<endl;
-	for(int i = 0; i < changes.size(); ++i) {
-		cout << changes[i].first << "\t" << changes[i].second <<endl;
-	}
 	
 	typedef vector<pair<unsigned, unsigned> >::iterator it;
+
 	for(it i = changes.begin(); i != changes.end();) {
-//		cout << "i: " << i-changes.begin() << endl;
-		unsigned node = i->first;
+		unsigned node = i->first;//to-node
+		
 		it j;
-		for(j=i+1; j != changes.end() && j->first == node; ++j);
-//		cout << "j: " << j-changes.begin() << endl;
+		for(j=i+1; j != changes.end() && j->first == node; ++j);//j points past end of nodes to move
+		
 		EdgeVector& inEdges = bush[node];
 		
-		int l = inEdges.length()-(j-i);
-		it m = j-1;
+		int l = inEdges.length()-(j-i);//new length of inEdges with nodes removed
+		it m = j-1;//m is the index of the last change to make?
 		
-//		cout << "l: " << l<< ", inEdges.length: " << inEdges.length() << endl;
-		
-		for(int k = inEdges.length()-1; l <= k; --k, --m) {
+		for(int k = inEdges.length()-1; m>=i; --k, --m) {
 			std::swap(inEdges[k], inEdges[m->second]);
-//			cout << "Swapping elements " << k << " and " << m->second << endl;
 		}//Move edges to be inverted to the end.
+		//Move the last ones first for a reason - don't screw up order
 		
 		for(int k = l; k != inEdges.length(); ++k) {
+			//Perform the edge direction swaps on the last few entries.
 			BushEdge& edge = inEdges[k];
 			unsigned fromID = edge.fromNode()-&sharedNodes[0];
-//			cout << "fromID was " << fromID << endl;
 			edge.swapDirection(graph);
 			bush[fromID].push_back(edge);
 		}
-		inEdges.resize(l);
-		i=j;
+		inEdges.resize(j-i);//Delete the last edges from the set
+		
+		i=j;//Move on to the next lot of changes.
 	}
 }
 
@@ -239,6 +232,8 @@ void Bush::topologicalSort()
 	 * would make buildTrees a somewhat faster, and this function and
 	 * updateEdges(2) a little slower. Maybe later, probably worth it
 	 * if I can be clever about it.
+	 * 
+	 * TODO: Only sort between the i and j node if reversed edges.
 	 */
 	
 	/* Preconditions: Edges in outEdges define a strict partial order
@@ -257,7 +252,7 @@ void Bush::topologicalSort()
 		index->first = sharedNodes[*i].maxDist();
 		index->second = *i;
 	}
-	sort(tempStore.begin(), storeEnd);
+	stable_sort(tempStore.begin(), storeEnd, Bush::pairComparator);
 	
 	index = tempStore.begin();
 	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); index != storeEnd; ++i, ++index) {

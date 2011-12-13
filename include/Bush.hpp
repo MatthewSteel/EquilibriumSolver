@@ -66,20 +66,24 @@ class Bush
 		ABGraph& graph;
 		
 		std::vector<std::pair<unsigned, unsigned> > changes;//BushEdges to reverse
-};
-
-//Inlined because we call this once per node per iteration, and spend 35% of our time in here.
-inline bool Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
-{
-	BushEdge* changeBegin = inEdges.begin(), *last = inEdges.end();
-	
-	//Partition outEdges into good, bad. std::partition isn't inlining.
-	//As seen in quicksort etc.
-	for(; changeBegin != last; ++changeBegin) {
-		if(changeBegin->fromNode()->maxDist() > maxDist) {
-			changes.push_back(std::make_pair(id, changeBegin - inEdges.begin()));
+		
+		static bool pairComparator(const std::pair<double,unsigned>& first, const std::pair<double,unsigned>& second) {
+			return first.first < second.first;
 		}
 		
+};
+
+//Inlined because we call this once per node per iteration, and spend 35% of our time in here. FIXME
+inline bool Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
+{
+	BushEdge *last = inEdges.end();
+	
+	for(BushEdge* changeBegin = inEdges.begin(); changeBegin != last; ++changeBegin) {
+		if(changeBegin->fromNode()->maxDist() > maxDist) {
+			changes.push_back(std::make_pair(id, changeBegin - inEdges.begin()));
+		
+		//	if(origin.getOrigin()==0 && debug) std::cout << "Edge to turn around: (" << id << "," << changeBegin->fromNode()-&sharedNodes[0] << ")" << std::endl;
+		}
 	}
 }
 

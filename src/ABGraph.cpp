@@ -75,30 +75,26 @@ ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdg
 	}
 }
 
-void ABGraph::dijkstra(unsigned origin, vector<double>& distances, vector<unsigned>& order)
+void ABGraph::dijkstra(unsigned origin, vector<unsigned>& distances, vector<unsigned>& order)
 {
-	const double unvisited = -numeric_limits<double>::infinity();//Ugly, dumb
-	
-	for(vector<double>::iterator i = distances.begin(); i != distances.end(); ++i) {
-		*i = unvisited;
-	}
+	const unsigned unvisited = -1;//Ugly, dumb
 	
 	priority_queue<pair<double, unsigned> > queue;
-	queue.push(make_pair(0, origin));
+	queue.push(make_pair(0.0, origin));
 	
 	while(!queue.empty()) {
 		double distance = queue.top().first;
 		unsigned id = queue.top().second;
 		
-		if(distance == unvisited) break;
-		//Unnecessary, but saves putting unreachable elements in the topo sort.
+		if(distance == -std::numeric_limits<double>::infinity()) break;
+		//Unnecessary, but saves putting unreachable nodes in the topo sort.
 		//No real time benefit here, but saves a bit in the main algorithm.
-	
-		if(distances[id] == unvisited) {
 		
-			distances[id] = distance;//Out-distance
+		if(distances[id] == unvisited) {//first hit on this node
+			
+			distances[id] = order.size();//final index
 			order.push_back(id);//out-topological sort.
-		
+			
 			for(vector<unsigned>::iterator i = edgeStructure[id].begin(); i != edgeStructure[id].end(); ++i) {
 				ForwardGraphEdge& fge = forwardStorage[*i];
 				BackwardGraphEdge& bge = backwardStorage[*i];
@@ -111,9 +107,5 @@ void ABGraph::dijkstra(unsigned origin, vector<double>& distances, vector<unsign
 			}
 		}
 		queue.pop();
-	}
-	for(vector<double>::iterator i = distances.begin(); i != distances.end(); ++i) {
-		(*i) = -(*i);
-		//Righting the negative distance labels.
 	}
 }

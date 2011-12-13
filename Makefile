@@ -15,7 +15,7 @@ VPATH = src:objs
 CXX = g++
 
 CXXFLAGS = \
-	-g -pipe -pedantic-errors -Wimplicit -Wparentheses -Wreturn-type\
+	-g -pipe -pedantic-errors -Wparentheses -Wreturn-type\
 	-Wcast-qual -Wall -Wpointer-arith -Wwrite-strings -Wconversion -O3\
 	-march=native -pg
 

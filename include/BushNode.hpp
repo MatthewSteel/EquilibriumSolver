@@ -84,12 +84,6 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 	could be costly, though.
 	*/
 	
-	/*
-	Whole function looks like a big case of "Dammit compiler, I know what
-	I'm doing." Loading data early, storing it at the end, all that stuff.
-	Will still want to look at the generated ASM, though.
-	*/
-
 	BushEdge* minPred = 0;
 	BushEdge* maxPred = 0;
 	double minDist = std::numeric_limits<double>::infinity();
