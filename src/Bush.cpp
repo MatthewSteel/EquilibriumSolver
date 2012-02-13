@@ -27,8 +27,8 @@
 
 using namespace std;
 
-Bush::Bush(const Origin& o, ABGraph& g, vector<pair<double,unsigned> >& tempStore) :
-origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), graph(g)
+Bush::Bush(const Origin& o, ABGraph& g, vector<pair<double,unsigned> >& tempStore, vector<unsigned> reverseTS) :
+origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), reverseTS(reverseTS), graph(g)
 {
 	//Set up graph data structure:
 	topologicalOrdering.reserve(g.numVertices());
@@ -159,7 +159,7 @@ void Bush::buildTrees()
 {
 
 	sharedNodes[origin.getOrigin()].setDistance(0.0);
-	sharedNodes[origin.getOrigin()].setTO(0);
+	reverseTS[origin.getOrigin()]=0;
 	
 	changes.clear();//Just in case, forget any edges need turning around
 	
@@ -169,7 +169,8 @@ void Bush::buildTrees()
 		unsigned id = *i;
 		BushNode &v = sharedNodes[id];
 		EdgeVector& inEdges = bush[id];
-		v.updateInDistances(inEdges, topoIndex);
+		v.updateInDistances(inEdges);
+		reverseTS[id]=topoIndex;
 		
 		updateEdges(inEdges, v.maxDist(), id);
 	}
@@ -178,7 +179,7 @@ void Bush::buildTrees()
 bool Bush::updateEdges()
 {
 	if(!changes.empty()) {
-		topologicalSort();
+		topologicalSort();//Must TS before apply changes or we'll screw things up.
 		applyBushEdgeChanges();
 		changes.clear();
 		return true;
@@ -261,50 +262,23 @@ void Bush::topologicalSort()
 	 * NOTE: If we deal with adjacent nodes with potential two-way zero-
 	 * length connecting arcs we may need to think harder. Bar-Gera (2002)
 	 * says, "strictly positive", though.
+	 * 
+	 * Postcondition: reverseTS etc must be valid.
 	 */
 	
 	typedef vector<pair<unsigned, unsigned> >::reverse_iterator it;
 	
-	/*cout << "\n\nTopological sorting: printing crap" << endl;
-	printCrap();
-	cout << "Changes to make:" << endl;
-	for(vector<pair<unsigned, unsigned> >::iterator i = changes.begin(); i != changes.end(); ++i) {
-		cout << i->first << ", " << i->second << '\n';
-	}
-	cout << endl;/**/
-	
 	for(it i = changes.rbegin(); i != changes.rend();) {
-		
-		/*cout << "top end, change: (" << i->first << ", " << i->second << "), topo index=" <<sharedNodes[i->first].topologicalIndex() << endl;
-		cout << "Just to check, looking that index up in the order: " << topologicalOrdering[sharedNodes[i->first].topologicalIndex()] << endl;/**/
-		
-		
-		unsigned upperLimit = sharedNodes[i->first].topologicalIndex();
+		unsigned upperLimit = reverseTS[i->first];
 		unsigned lowerLimit = upperLimit;
 		
-		for(; i != changes.rend() && sharedNodes[i->first].topologicalIndex() >= lowerLimit; ++i) {
-			unsigned fromIndex = bush[i->first][i->second].fromNode()->topologicalIndex();
+		for(; i != changes.rend() && reverseTS[i->first] >= lowerLimit; ++i) {
+			unsigned fromIndex = reverseTS[bush[i->first][i->second].fromNode()-&sharedNodes.front()];
 			
 			if(lowerLimit > fromIndex) lowerLimit = fromIndex;
 		}
-		
-		
-		/*cout << "Old order to change:" << endl;
-		for(unsigned k = lowerLimit; k < upperLimit+1; ++k)
-			cout << ' ' << topologicalOrdering[k];
-		cout << endl;/**/
-		
 		partialTS(lowerLimit, upperLimit+1);
-		
-		/*cout << "New order:" << endl;
-		for(unsigned k = lowerLimit; k < upperLimit+1; ++k)
-			cout << ' ' << topologicalOrdering[k];
-		cout << endl;/**/
-		
 	}
-	/*cout << "Printing more crap:"<<endl;
-	printCrap();/**/
-
 }
 
 void Bush::partialTS(unsigned lower, unsigned upper)

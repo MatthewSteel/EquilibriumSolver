@@ -101,5 +101,6 @@ class AlgorithmBSolver
 		//A premature optimisation, but probably an optimisation.
 		//So long as we clean it up, I guess...
 		std::vector<std::pair<double, unsigned> > tempStore;
+		std::vector<unsigned> reverseTS;
 };
 #endif

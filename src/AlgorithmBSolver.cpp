@@ -29,7 +29,7 @@ using namespace std;
 
 class BushEdge;
 
-AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(g.numNodes())
+AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(g.numNodes()), reverseTS(g.numNodes())
 {
 	//NOTE: A little heavy work in the graph ctor in the init list.
 	//Read ODData out of graph
@@ -54,7 +54,7 @@ AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(g.n
 	}*/
 	//Set up a bush for every origin. Most of the work is in here - Dijkstra over the graph in the Bush ctor.
 	for(list<Origin>::iterator i = ODData.begin(); i != ODData.end(); ++i) {
-		bushes.push_back(new Bush(*i, graph, tempStore));
+		bushes.push_back(new Bush(*i, graph, tempStore, reverseTS));
 	}
 }
 
@@ -63,7 +63,6 @@ bool AlgorithmBSolver::fixBushSets(list<Bush*>& fix, list<Bush*>& output, double
 	//TODO: Replace with std::partition and list.splice when we get lambdas (C++0x).
 	vector<list<Bush*>::iterator> move;
 	for(list<Bush*>::iterator i = fix.begin(); i != fix.end(); ++i) {
-//		cout << "Fixing a bush" << endl;
 		if((*i)->fix(average) == whetherMove) move.push_back(i);
 	}
 	for(vector<list<Bush*>::iterator>::iterator i = move.begin(); i != move.end(); ++i) {
@@ -85,12 +84,8 @@ void AlgorithmBSolver::solve(unsigned iterationLimit)
 		sum += (*i)->maxDifference();
 
 	double average= 0.25*sum / (bushes.size() + lazyBushes.size());
-
-	
-//	cout << "Here we go." << endl;
 	
 	for(unsigned iteration = 0; iteration < iterationLimit; ++iteration) {
-//		cout << "Entering iteration" << endl;
 		if(iteration % 4 == 3) {
 			if(fixBushSets(lazyBushes, bushes, average, true)) return;
 		}
@@ -125,7 +120,6 @@ double AlgorithmBSolver::relativeGap()
 		lowerBound += (*i)->allOrNothingCost();
 	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		lowerBound += (*i)->allOrNothingCost();
-	//cout << "Upper: " << upperBound << ", Lower: " << lowerBound << endl;
 	return 1-lowerBound/upperBound;
 }
 
@@ -137,7 +131,6 @@ double AlgorithmBSolver::averageExcessCost()
 		lowerBound += (*i)->allOrNothingCost();
 	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		lowerBound += (*i)->allOrNothingCost();
-	//cout << "Upper: " << upperBound << ", Lower: " << lowerBound << endl;
 	double demand = 0;
 	for(list<Origin>::iterator i = ODData.begin(); i != ODData.end(); ++i) {
 		for(vector<pair<int,double> >::const_iterator j = i->dests().begin(); j != i->dests().end(); ++j) {
