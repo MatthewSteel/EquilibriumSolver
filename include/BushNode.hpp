@@ -36,12 +36,14 @@ class BushNode
 	public:
 		BushNode();
 		void equilibriate(ABGraph&);
-		void updateInDistances(EdgeVector&);
+		void updateInDistances(EdgeVector&, unsigned);
 		double minDist() const { return minDistance; }
 		double maxDist() const { return maxDistance; }
 		double getDifference() const { return (maxDistance-minDistance); }
 		BushEdge* getMinPredecessor() { return minPredecessor; }
 		void setDistance(double d) { minDistance = maxDistance = d; }
+		unsigned topologicalIndex() { return topoIndex; }
+		void setTO(unsigned u) { topoIndex = u; }
 	private:
 		bool moreSeparatePaths(BushNode*&, BushNode*&, ABGraph&);
 		void fixDifferentPaths(std::vector<std::pair<BushEdge*, ForwardGraphEdge*> >&,
@@ -53,6 +55,7 @@ class BushNode
 		
 		double minDistance;
 		double maxDistance;
+		unsigned topoIndex;
 };
 
 /*
@@ -64,7 +67,7 @@ updateEdges (and possibly topo-sort) as well to make it worthwhile. Still, for
 two threads that beats some other ideas. Don't sacrifice any convergence per
 iteration.
 */
-inline void BushNode::updateInDistances(EdgeVector& outEdges)
+inline void BushNode::updateInDistances(EdgeVector& outEdges, unsigned topologicalIndex)
 {
 	/*
 	Our rules are as follows:
@@ -139,6 +142,7 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 	maxPredecessor = maxPred;
 	minPredecessor = minPred;
 	//save our results
+	topoIndex = topologicalIndex;
 }
 
 #endif

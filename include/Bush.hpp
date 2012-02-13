@@ -52,6 +52,7 @@ class Bush
 		void setUpGraph();
 		void topologicalSort();
 		void applyBushEdgeChanges();
+		void partialTS(unsigned, unsigned);
 		
 		const Origin& origin;
 		std::vector<EdgeVector> bush;//Stores BushEdges, half the memory req of regular vectors.

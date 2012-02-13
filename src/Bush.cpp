@@ -159,14 +159,17 @@ void Bush::buildTrees()
 {
 
 	sharedNodes[origin.getOrigin()].setDistance(0.0);
+	sharedNodes[origin.getOrigin()].setTO(0);
 	
 	changes.clear();//Just in case, forget any edges need turning around
-	unsigned topoIndex = 0;
+	
+	
+	unsigned topoIndex = 1;
 	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin()+1; i < topologicalOrdering.end(); ++i, ++topoIndex) {
 		unsigned id = *i;
 		BushNode &v = sharedNodes[id];
 		EdgeVector& inEdges = bush[id];
-		v.updateInDistances(inEdges);
+		v.updateInDistances(inEdges, topoIndex);
 		
 		updateEdges(inEdges, v.maxDist(), id);
 	}
@@ -175,8 +178,8 @@ void Bush::buildTrees()
 bool Bush::updateEdges()
 {
 	if(!changes.empty()) {
-		applyBushEdgeChanges();
 		topologicalSort();
+		applyBushEdgeChanges();
 		changes.clear();
 		return true;
 	}
@@ -186,34 +189,48 @@ bool Bush::updateEdges()
 void Bush::applyBushEdgeChanges()
 {
 	
-	typedef vector<pair<unsigned, unsigned> >::iterator it;
+	/* We kinda have a list of changes like [1, 3, 5] and a vector of maybe 
+	 * 6 elements, like [0, 1, 2, 3, 4, 5]. We want to 
+	 *
+	 *   1. Do some operation on the identified subset
+	 *      of the edges (invert them)
+	 *   2. Remove the identified subset of edges from
+	 *      the vector.
+	 * 
+	 * A nice way to remove the subset is to swap it to the end of the
+	 * vector and then shrink the vector. We do the swapping from last-
+	 * to-first just in case part of the identified subset is at the end
+	 * of the vector. We don't want early swaps to screw up later swaps.
+	 * 
+	 * In the example above, "5" is in the subset. Doing it in reverse,
+	 * we swap it with itself, leaving it in the right spot. 
+	 * Doing it forwards we'd probably begin by swapping element "1" to
+	 * the end, leaving element "5" near the start (effectively lost).
+	 */
 
-	for(it i = changes.begin(); i != changes.end();) {
-		unsigned node = i->first;//to-node
-		
-		it j;
-		for(j=i+1; j != changes.end() && j->first == node; ++j);//j points past end of nodes to move
-		
+	typedef vector<pair<unsigned, unsigned> >::reverse_iterator rit;
+	
+	for(rit i = changes.rbegin(); i != changes.rend();) {
+		unsigned node = i->first;
 		EdgeVector& inEdges = bush[node];
 		
-		int l = inEdges.length()-(j-i);//new length of inEdges with nodes removed
-		it m = j-1;//m is the index of the last change to make?
+		int esize = inEdges.length();
 		
-		for(int k = inEdges.length()-1; m>=i; --k, --m) {
-			std::swap(inEdges[k], inEdges[m->second]);
-		}//Move edges to be inverted to the end.
-		//Move the last ones first for a reason - don't screw up order
-		
-		for(int k = l; k != inEdges.length(); ++k) {
-			//Perform the edge direction swaps on the last few entries.
-			BushEdge& edge = inEdges[k];
+		rit j=i;
+		for(; j!=changes.rend() && j->first == node; ++j) {
+			//swap edge to the end
+			std::swap(inEdges[--esize], inEdges[j->second]);
+			
+			//Invert the edge
+			BushEdge& edge = inEdges[esize];
 			unsigned fromID = edge.fromNode()-&sharedNodes[0];
 			edge.swapDirection(graph);
 			bush[fromID].push_back(edge);
-		}
+		}//Move edges to be inverted to the end
+		
 		inEdges.resize(j-i);//Delete the last edges from the set
 		
-		i=j;//Move on to the next lot of changes.
+		i=j;
 	}
 }
 
@@ -246,16 +263,68 @@ void Bush::topologicalSort()
 	 * says, "strictly positive", though.
 	 */
 	
-	vector<pair<double,unsigned> >::iterator index = tempStore.begin();
-	vector<pair<double,unsigned> >::iterator storeEnd = tempStore.begin() + topologicalOrdering.size();
-	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); index != storeEnd; ++i, ++index) {
-		index->first = sharedNodes[*i].maxDist();
-		index->second = *i;
-	}
-	stable_sort(tempStore.begin(), storeEnd, Bush::pairComparator);
+	typedef vector<pair<unsigned, unsigned> >::reverse_iterator it;
 	
-	index = tempStore.begin();
-	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); index != storeEnd; ++i, ++index) {
+	/*cout << "\n\nTopological sorting: printing crap" << endl;
+	printCrap();
+	cout << "Changes to make:" << endl;
+	for(vector<pair<unsigned, unsigned> >::iterator i = changes.begin(); i != changes.end(); ++i) {
+		cout << i->first << ", " << i->second << '\n';
+	}
+	cout << endl;/**/
+	
+	for(it i = changes.rbegin(); i != changes.rend();) {
+		
+		/*cout << "top end, change: (" << i->first << ", " << i->second << "), topo index=" <<sharedNodes[i->first].topologicalIndex() << endl;
+		cout << "Just to check, looking that index up in the order: " << topologicalOrdering[sharedNodes[i->first].topologicalIndex()] << endl;/**/
+		
+		
+		unsigned upperLimit = sharedNodes[i->first].topologicalIndex();
+		unsigned lowerLimit = upperLimit;
+		
+		for(; i != changes.rend() && sharedNodes[i->first].topologicalIndex() >= lowerLimit; ++i) {
+			unsigned fromIndex = bush[i->first][i->second].fromNode()->topologicalIndex();
+			
+			if(lowerLimit > fromIndex) lowerLimit = fromIndex;
+		}
+		
+		
+		/*cout << "Old order to change:" << endl;
+		for(unsigned k = lowerLimit; k < upperLimit+1; ++k)
+			cout << ' ' << topologicalOrdering[k];
+		cout << endl;/**/
+		
+		partialTS(lowerLimit, upperLimit+1);
+		
+		/*cout << "New order:" << endl;
+		for(unsigned k = lowerLimit; k < upperLimit+1; ++k)
+			cout << ' ' << topologicalOrdering[k];
+		cout << endl;/**/
+		
+	}
+	/*cout << "Printing more crap:"<<endl;
+	printCrap();/**/
+
+}
+
+void Bush::partialTS(unsigned lower, unsigned upper)
+{
+	tempStore.clear();
+	
+	typedef vector<unsigned>::iterator vi;
+	
+	vi begin = topologicalOrdering.begin()+lower;
+	vi end = topologicalOrdering.begin()+upper;
+	
+	for(vi i = begin; i != end; ++i) {
+		tempStore.push_back(make_pair(sharedNodes[*i].maxDist(), *i));
+	}
+	
+	//We then sort our pairs of dist/ts. Needs to be stable - we don't sort on ts if Bush is equal
+	stable_sort(tempStore.begin(), tempStore.end(), Bush::pairComparator);
+	
+	vector<pair<double, unsigned> >::iterator index = tempStore.begin();
+	for(vi i = begin; i != end; ++i, ++index) {
 		(*i) = index->second;
 	}
 }
