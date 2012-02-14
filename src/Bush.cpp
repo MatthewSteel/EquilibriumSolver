@@ -79,8 +79,7 @@ void Bush::setUpGraph()
 		if(fromPosition < toPosition) {
 			//When we're finally done Dijkstra will just add the predecessors
 			//and we'll be away. (Dijkstra will be in this class then, no doubt)
-			
-			bush.at(toId).push_back((BushEdge(graph.backward(&*iter))));
+			bush.at(toPosition).push_back((BushEdge(graph.backward(&*iter))));
 		}
 	}
 }
@@ -113,7 +112,8 @@ void Bush::printCrap()
 
 		cout << i-sharedNodes.begin() << "("<< (*i).minDist() <<","<<(*i).maxDist()<<"):";
 
-		for(BushEdge* j = bush.at(i-sharedNodes.begin()).begin(); j!=bush.at(i-sharedNodes.begin()).end(); ++j) {
+		EdgeVector &ev = bush.at(reverseTS[i-sharedNodes.begin()]);
+		for(BushEdge* j = ev.begin(); j!=ev.end(); ++j) {
 			cout << " " << ((j->fromNode()-&sharedNodes[0])) <<
 			        "(" << (j->length()) << "," << (j->flow()) << ") ";
 		}
@@ -157,7 +157,6 @@ bool Bush::equilibriateFlows(double accuracy)
 
 void Bush::buildTrees()
 {
-
 	sharedNodes[origin.getOrigin()].setDistance(0.0);
 	reverseTS[origin.getOrigin()]=0;
 	
@@ -165,10 +164,15 @@ void Bush::buildTrees()
 	
 	
 	unsigned topoIndex = 1;
-	for(vector<unsigned>::const_iterator i = topologicalOrdering.begin()+1; i < topologicalOrdering.end(); ++i, ++topoIndex) {
+	vector<EdgeVector>::iterator evv = bush.begin()+1;
+	for(
+		vector<unsigned>::const_iterator i = topologicalOrdering.begin()+1;
+		i < topologicalOrdering.end();
+		++i, ++topoIndex, ++evv
+	) {
 		unsigned id = *i;
 		BushNode &v = sharedNodes[id];
-		EdgeVector& inEdges = bush[id];
+		EdgeVector& inEdges = *evv;
 		v.updateInDistances(inEdges);
 		reverseTS[id]=topoIndex;
 		
@@ -213,7 +217,7 @@ void Bush::applyBushEdgeChanges()
 	
 	for(rit i = changes.rbegin(); i != changes.rend();) {
 		unsigned node = i->first;
-		EdgeVector& inEdges = bush[node];
+		EdgeVector& inEdges = bush[reverseTS[node]];
 		
 		int esize = inEdges.length();
 		
@@ -226,7 +230,7 @@ void Bush::applyBushEdgeChanges()
 			BushEdge& edge = inEdges[esize];
 			unsigned fromID = edge.fromNode()-&sharedNodes[0];
 			edge.swapDirection(graph);
-			bush[fromID].push_back(edge);
+			bush[reverseTS[fromID]].push_back(edge);
 		}//Move edges to be inverted to the end
 		
 		inEdges.resize(j-i);//Delete the last edges from the set
@@ -273,7 +277,8 @@ void Bush::topologicalSort()
 		unsigned lowerLimit = upperLimit;
 		
 		for(; i != changes.rend() && reverseTS[i->first] >= lowerLimit; ++i) {
-			unsigned fromIndex = reverseTS[bush[i->first][i->second].fromNode()-&sharedNodes.front()];
+			EdgeVector &inEdges = bush[reverseTS[i->first]];
+			unsigned fromIndex = reverseTS[inEdges[i->second].fromNode()-&sharedNodes.front()];
 			
 			if(lowerLimit > fromIndex) lowerLimit = fromIndex;
 		}
@@ -283,9 +288,9 @@ void Bush::topologicalSort()
 
 void Bush::partialTS(unsigned lower, unsigned upper)
 {
-	tempStore.clear();
-	
 	typedef vector<unsigned>::iterator vi;
+	
+	tempStore.clear();
 	
 	vi begin = topologicalOrdering.begin()+lower;
 	vi end = topologicalOrdering.begin()+upper;
@@ -297,9 +302,21 @@ void Bush::partialTS(unsigned lower, unsigned upper)
 	//We then sort our pairs of dist/ts. Needs to be stable - we don't sort on ts if Bush is equal
 	stable_sort(tempStore.begin(), tempStore.end(), Bush::pairComparator);
 	
-	vector<pair<double, unsigned> >::iterator index = tempStore.begin();
-	for(vi i = begin; i != end; ++i, ++index) {
-		(*i) = index->second;
+	unsigned numIndex=lower;
+	vector<pair<double, unsigned> >::iterator tsIndex = tempStore.begin();
+	for(vi i = begin; i != end; ++i, ++tsIndex, ++numIndex) {
+		
+		swap(bush[reverseTS[tsIndex->second]], bush[numIndex]);
+		//swap our edges with the edges of where we're going
+		
+		//Last one: update the topological index of the other one?
+		topologicalOrdering[reverseTS[tsIndex->second]] = *i;
+		//set the reverseTS of the old one here to our old location
+		reverseTS[*i] = reverseTS[tsIndex->second];
+		//set our reverseTS to our new location
+		reverseTS[tsIndex->second] = numIndex;
+		
+		*i = tsIndex->second;
 	}
 }
 

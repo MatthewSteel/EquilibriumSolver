@@ -4,6 +4,8 @@
 #ifndef EDGE_VECTOR_HPP
 #define EDGE_VECTOR_HPP
 
+#include <algorithm> //for std::swap
+
 class EdgeVector {
 	public:
 		EdgeVector() : _begin(0), size(0) {}
@@ -37,9 +39,18 @@ class EdgeVector {
 		}
 		bool empty() { return size==0; }
 		int length() { return size; }
+		
+		friend void swap(EdgeVector& l, EdgeVector& r) {
+			using std::swap;
+			swap(l._begin, r._begin);
+			swap(l.size, r.size);
+		}
 	private:
 		BushEdge* _begin;
 		unsigned size;
+		
+//		EdgeVector(const EdgeVector &e);
+//		void operator=(const EdgeVector &e);
 };
 
 #endif
