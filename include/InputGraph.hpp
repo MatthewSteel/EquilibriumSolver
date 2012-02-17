@@ -3,7 +3,12 @@
 
 #include <map>
 #include <utility>
-#include <tr1/functional>
+
+#ifdef _MSC_VER
+ #include <functional>
+#else
+ #include <tr1/functional>
+#endif
 
 class InputGraph {
 	public:
@@ -30,17 +35,10 @@ class InputGraph {
 	private:
 		unsigned nodes;
 		std::map<unsigned, std::map<unsigned, VDF> > _graph;
+		//map[from_node] --> (map[to_node] --> delay_func)
+		
 		std::map<unsigned, std::map<unsigned, double> > _demand;
-		/*NOTE:
-		- Seems reasonable to keep these things separate.
-		- Should think about making a demand class instead of a
-		std::pair, but this isn't too bad, really.
-		- Maps don't help efficiency, but code cleanliness wins
-		here - things to do with this graph go about 3-5s slower
-		in total as a result, but total runtime is > 15mins. */
-
-		/* Think about having refs to nodes instead of an indexes?
-		Probably not a good idea. */
+		//map[from_node] --> (map[to_node] --> demand)
 };
 
 #endif

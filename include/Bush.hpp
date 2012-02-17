@@ -34,7 +34,7 @@
 class Bush
 {
 	public:
-		Bush(const Origin&, ABGraph&, std::vector<std::pair<double, unsigned> >&, std::vector<unsigned>);//Inits bush, sends initial flows
+		Bush(const Origin&, ABGraph&, std::vector<std::pair<double, unsigned> >&, std::vector<unsigned>&);//Inits bush, sends initial flows
 		bool fix(double);
 		void printCrap();
 		int getOrigin() { return origin.getOrigin(); }
@@ -63,7 +63,7 @@ class Bush
 		//Shared with other bushes so we don't deallocate/reallocate data uselessly between bush iterations
 		std::vector<BushNode>& sharedNodes;
 		std::vector<std::pair<double, unsigned> >& tempStore;//Used in topo sort, don't want to waste the alloc/dealloc time.
-		std::vector<unsigned> reverseTS;
+		std::vector<unsigned> &reverseTS;
 		
 		ABGraph& graph;
 		

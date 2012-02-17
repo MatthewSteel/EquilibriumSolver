@@ -17,7 +17,7 @@ CXX = g++
 CXXFLAGS = \
 	-g -pipe -pedantic-errors -Wparentheses -Wreturn-type\
 	-Wcast-qual -Wall -Wpointer-arith -Wwrite-strings -Wconversion -O3\
-	-march=native -pg
+	-march=native -pg -lrt
 
 # additional C++ Compiler options for linking
 

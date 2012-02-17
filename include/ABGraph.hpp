@@ -41,7 +41,8 @@ executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 class ABGraph
 {
 	private:
-		std::vector<std::vector<unsigned> > edgeStructure;//still forwards
+		std::vector<std::vector<unsigned> > forwardStructure;
+		std::vector<unsigned> edgeStructure;//still forwards
 		std::vector<ForwardGraphEdge> forwardStorage;
 		std::vector<BackwardGraphEdge> backwardStorage;
 		
@@ -55,17 +56,18 @@ class ABGraph
 		 * Adds an edge. To-node and from-node are retrieved from the
 		 * parameter's data if they're necessary.
 		 */
-		void addEdge(unsigned from, unsigned to,
-		             InputGraph::VDF func = HornerPolynomial(
-		                 std::vector<double>(1,
-		                     std::numeric_limits<double>::infinity()
-		                 )
-		             )
+		void addEdge(
+			unsigned from, unsigned to, unsigned loc,
+			InputGraph::VDF func = HornerPolynomial(
+				std::vector<double>(
+					1, 
+					std::numeric_limits<double>::infinity()
+				)
+			)
 		) {;
-			backwardStorage.push_back(BackwardGraphEdge(func, &nodeStorage.at(from)));
-			forwardStorage.push_back(ForwardGraphEdge(func, &nodeStorage.at(to), &backwardStorage.back()));
-			
-			edgeStructure.at(from).push_back(forwardStorage.size()-1);
+			backwardStorage[loc]= BackwardGraphEdge(func, &nodeStorage.at(from));
+			forwardStorage[loc] = ForwardGraphEdge(func, &nodeStorage.at(to), &backwardStorage.back());
+			forwardStructure[from].push_back(loc);
 		}
 
 	public:
@@ -79,9 +81,10 @@ class ABGraph
 		 * Simple structure query, returns index of edges between two nodes.
 		 */
 		unsigned edge(unsigned from, unsigned to) {
-			for(std::vector<unsigned>::const_iterator i = edgeStructure[from].begin(); i != edgeStructure[from].end(); ++i) {
-				if(forwardStorage[*i].toNode()-&nodeStorage[0] == to) return (*i);
+			for(unsigned i = edgeStructure[to]; i != edgeStructure[to+1]; ++i) {
+				if(backwardStorage[i].fromNode()-&nodeStorage[0] == from) return (i);
 			}
+			std::cout << "Can't find edge (" << from << ", " << to << ")" << std::endl;
 			throw "Edge does not exist";
 		}//Not worth doing a binary search because traffic networks are so sparse
 		
@@ -146,13 +149,23 @@ class ABGraph
 		//FIXME: Is this used? It seems kinda bad for it to be public, non-const.
 		std::vector<BushNode>& nodes() { return nodeStorage; }
 		
-/*		friend std::ostream& operator<<(std::ostream& o, ABGraph & g) {
-			for(std::vector<BackwardGraphEdge>::iterator i = g.backwardStorage.begin(); i != g.backwardStorage.end(); ++i) {
-				o << *i << std::endl;
+		friend std::ostream& operator<<(std::ostream& o, ABGraph & g) {
+			o << "<NUMBER OF NODES>\t\t\n" << g.nodeStorage.size();
+			o << "<NUMBER OF LINKS>\t\t\n" << g.backwardStorage.size();
+			o << "<END OF METADATA>\t\t\n\n\n";
+			o << "~ \tTail \tHead \t: \tVolume \tCost \t; \n";
+			
+			for(int i = 0; i < g.forwardStructure.size(); ++i) {
+				for(int j=0; j < g.forwardStructure[i].size(); ++j) {
+					BackwardGraphEdge& bEdge = g.backwardStorage[g.forwardStructure[i][j]];
+					ForwardGraphEdge& fEdge = g.forwardStorage[g.forwardStructure[i][j]];
+					
+					o << "\t" <<i+1<<" \t"<<fEdge.toNode()-&g.nodeStorage.front()+1<<" \t: \t"<<fEdge.getFlow()<<" \t" << bEdge.distance() <<" \t; \n";
+				}
 			}
+			o.flush();
 			return o;
 		}
-		*/
 };
 
 #endif

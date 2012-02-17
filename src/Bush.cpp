@@ -27,7 +27,7 @@
 
 using namespace std;
 
-Bush::Bush(const Origin& o, ABGraph& g, vector<pair<double,unsigned> >& tempStore, vector<unsigned> reverseTS) :
+Bush::Bush(const Origin& o, ABGraph& g, vector<pair<double,unsigned> >& tempStore, vector<unsigned> &reverseTS) :
 origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), reverseTS(reverseTS), graph(g)
 {
 	//Set up graph data structure:

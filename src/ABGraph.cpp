@@ -25,7 +25,7 @@
 
 using namespace std;
 
-ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdges(0)
+ABGraph::ABGraph(const InputGraph& g) : forwardStructure(g.numNodes()), edgeStructure(g.numNodes()+1), numberOfEdges(0)
 {
 	//Set up contiguous node storage
 	nodeStorage.reserve(g.numNodes());
@@ -35,6 +35,8 @@ ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdg
 	typedef map<unsigned,InputGraph::VDF> EdgeMap;
 	typedef map<unsigned,EdgeMap> GraphMap;
 	
+	vector<unsigned> edgeNums(g.numNodes());
+	
 	//Set up contiguous edge storage
 	//Count edges first (so we don't get a vector reallocation when we add them in)
 	for(GraphMap::const_iterator i = g.graph().begin(); i != g.graph().end(); ++i) {
@@ -42,13 +44,24 @@ ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdg
 		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
 			++numberOfEdges;
 			unsigned toNode = j->first;
+			++edgeNums[toNode];//Log number of edges into this node
 			GraphMap::const_iterator k = g.graph().find(toNode);
 			if(k == g.graph().end() || k->second.find(fromNode)==k->second.end()) {
 				++numberOfEdges;
-			}
-			//Reverse edge not found
+				++edgeNums[fromNode];
+			}//Reverse edge not found
 		}
 	}
+	
+	forwardStorage.resize(numberOfEdges);
+	backwardStorage.resize(numberOfEdges);
+	
+	vector<unsigned>::iterator it = edgeNums.begin();
+	for(vector<unsigned>::iterator i = edgeStructure.begin()+1; i != edgeStructure.end(); ++i, ++it) {
+		*i = *(i-1)+*it;
+	}
+	
+	
 	forwardStorage.reserve(numberOfEdges);
 	backwardStorage.reserve(numberOfEdges);
 
@@ -57,11 +70,25 @@ ABGraph::ABGraph(const InputGraph& g) : edgeStructure(g.numNodes()), numberOfEdg
 		unsigned fromNode = i->first;
 		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
 			unsigned toNode = j->first;
-			addEdge(fromNode, toNode, j->second);
+
+			addEdge(
+				fromNode,
+				toNode,
+				edgeStructure[toNode+1]-edgeNums[toNode],
+				j->second
+			);
+			edgeNums[toNode]--;
+			
 			GraphMap::const_iterator k = g.graph().find(toNode);
 			if(k == g.graph().end() || k->second.find(fromNode)==k->second.end()) {
 				//Imaginary arc setup
-				addEdge(toNode, fromNode);
+				addEdge(
+					toNode,
+					fromNode,
+					edgeStructure[fromNode+1]-edgeNums[fromNode]
+					
+				);
+				--edgeNums[fromNode];
 			}
 		}
 	}
@@ -95,12 +122,13 @@ void ABGraph::dijkstra(unsigned origin, vector<unsigned>& distances, vector<unsi
 			distances[id] = order.size();//final index
 			order.push_back(id);//out-topological sort.
 			
-			for(vector<unsigned>::iterator i = edgeStructure[id].begin(); i != edgeStructure[id].end(); ++i) {
+			for(vector<unsigned>::iterator i = forwardStructure[id].begin(); i != forwardStructure[id].end(); ++i) {
 				ForwardGraphEdge& fge = forwardStorage[*i];
-				BackwardGraphEdge& bge = backwardStorage[*i];
 				unsigned toNodeId = fge.toNode()-&nodeStorage[0];
 				if(distances[toNodeId] == unvisited) {
-					//If statement unnecessary, but cuts runtime by 1/3
+					//If statement unnecessary, but cuts runtime by 1/3...
+					
+					BackwardGraphEdge& bge = backwardStorage[*i];
 					queue.push(make_pair(distance - bge.distance(), toNodeId));
 					//(dist - len) instead of (dist + len) because it's a max-queue (we want the min)
 				}

@@ -36,6 +36,7 @@ BuildTrees to ~1.5MB
 class BackwardGraphEdge
 {
 	public:
+		BackwardGraphEdge() : from(0), _distance(0.0) {}
 		BackwardGraphEdge(InputGraph::VDF, BushNode *from);
 		BackwardGraphEdge(const BackwardGraphEdge & e);
 
@@ -51,6 +52,7 @@ class BackwardGraphEdge
 class ForwardGraphEdge
 {
 	public:
+		ForwardGraphEdge() : inverse(0), to(0), flow(0.0) {}
 		ForwardGraphEdge(InputGraph::VDF, BushNode* to, BackwardGraphEdge* inverse);
 		ForwardGraphEdge(const ForwardGraphEdge& e);
 		
