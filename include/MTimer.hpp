@@ -33,7 +33,7 @@
 		double elapsed() {
 			timespec temp;
 			clock_gettime(CLOCK_MONOTONIC, &temp);
-			return (temp.tv_sec - started.tv_sec)+(temp.tv_nsec-started.tv_nsec)/1.0E9;
+			return (double)(temp.tv_sec - started.tv_sec)+(double)((temp.tv_nsec-started.tv_nsec))/1.0E9;
 		}
 	private:
 		timespec started;

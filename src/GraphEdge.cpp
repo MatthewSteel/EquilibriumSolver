@@ -31,15 +31,15 @@ BackwardGraphEdge::BackwardGraphEdge(const BackwardGraphEdge & e) : from(e.from)
 {}
 
 ForwardGraphEdge::ForwardGraphEdge(InputGraph::VDF i, BushNode *to, BackwardGraphEdge *e):
-	inverse(e),
 	distanceFunction(i),
+	inverse(e),
 	to(to),
 	flow(0)
 {}
 
 ForwardGraphEdge::ForwardGraphEdge(const ForwardGraphEdge& e):
-	inverse(e.inverse),
 	distanceFunction(e.distanceFunction),
+	inverse(e.inverse),
 	to(e.to),
 	flow(e.flow)
 {}

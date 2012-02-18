@@ -44,7 +44,7 @@ origin(o), bush(g.numVertices()), sharedNodes(g.nodes()), tempStore(tempStore), 
 
 void Bush::setUpGraph()
 {
-	vector<unsigned> distanceMap(graph.numVertices(), -1);
+	vector<long> distanceMap(graph.numVertices(), -1);
 		//position of node i in topologicalOrdering
 		//Set up in Dijkstra
 	
@@ -69,10 +69,10 @@ void Bush::setUpGraph()
 	
 	for(vector<ForwardGraphEdge>::iterator iter = begin; iter != end; ++iter) {
 		
-		unsigned toId = iter->toNode()-&sharedNodes[0];
-		unsigned toPosition = distanceMap.at(toId);
-		unsigned fromId = graph.backward(&*iter)->fromNode()-&sharedNodes[0];
-		unsigned fromPosition = distanceMap.at(fromId);
+		long toId = iter->toNode()-&sharedNodes[0];
+		long toPosition = distanceMap.at(toId);
+		long fromId = graph.backward(&*iter)->fromNode()-&sharedNodes[0];
+		long fromPosition = distanceMap.at(fromId);
 		if(toPosition == -1 || fromPosition == -1) continue;
 		//Ignore edges to/from unreachable nodes.
 		
@@ -228,12 +228,12 @@ void Bush::applyBushEdgeChanges()
 			
 			//Invert the edge
 			BushEdge& edge = inEdges[esize];
-			unsigned fromID = edge.fromNode()-&sharedNodes[0];
+			long fromID = edge.fromNode()-&sharedNodes[0];
 			edge.swapDirection(graph);
 			bush[reverseTS[fromID]].push_back(edge);
 		}//Move edges to be inverted to the end
 		
-		inEdges.resize(j-i);//Delete the last edges from the set
+		inEdges.resize((unsigned)(j-i));//Delete the last edges from the set
 		
 		i=j;
 	}
@@ -320,11 +320,11 @@ void Bush::partialTS(unsigned lower, unsigned upper)
 	}
 }
 
-int Bush::giveCount()// const
+long Bush::giveCount()// const
 {
 	//NOTE: now returns number of nodes with the same distance.
 	buildTrees();
-	unsigned count = 0;
+	long count = 0;
 	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); i != topologicalOrdering.end();) {
 		double dist1 = sharedNodes.at(*i).maxDist();
 		vector<unsigned>::iterator j;

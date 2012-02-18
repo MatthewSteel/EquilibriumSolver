@@ -38,14 +38,14 @@ class Bush
 		bool fix(double);
 		void printCrap();
 		int getOrigin() { return origin.getOrigin(); }
-		int giveCount()/* const*/;
+		long giveCount()/* const*/;
 		double allOrNothingCost();
 		double maxDifference();
 		~Bush();
 	private:
 		bool updateEdges();
 		bool equilibriateFlows(double);//Equilibriates, tells graph what's going on
-		bool updateEdges(EdgeVector&, double, unsigned);
+		void updateEdges(EdgeVector&, double, unsigned);
 		void buildTrees();
 		void sendInitialFlows();
 		//Makes sure all our edges are pointing in the right direction, and we're sorted well.
@@ -76,7 +76,7 @@ class Bush
 };
 
 //Inlined because we call this once per node per iteration, and spend 35% of our time in here. FIXME
-inline bool Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
+inline void Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
 {
 	BushEdge *last = inEdges.end();
 	

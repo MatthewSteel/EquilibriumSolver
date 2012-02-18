@@ -80,7 +80,7 @@ class ABGraph
 		/**
 		 * Simple structure query, returns index of edges between two nodes.
 		 */
-		unsigned edge(unsigned from, unsigned to) {
+		unsigned edge(long from, long to) {
 			for(unsigned i = edgeStructure[to]; i != edgeStructure[to+1]; ++i) {
 				if(backwardStorage[i].fromNode()-&nodeStorage[0] == from) return (i);
 			}
@@ -128,7 +128,7 @@ class ABGraph
 		}
 		
 		//TODO: Add param info, have it return a good topo order (visited).
-		void dijkstra(unsigned origin, std::vector<unsigned>& distances, std::vector<unsigned>& order);
+		void dijkstra(unsigned origin, std::vector<long>& distances, std::vector<unsigned>& order);
 		
 		/**
 		 * Returns the total user travel time in the current solution.
@@ -155,8 +155,8 @@ class ABGraph
 			o << "<END OF METADATA>\t\t\n\n\n";
 			o << "~ \tTail \tHead \t: \tVolume \tCost \t; \n";
 			
-			for(int i = 0; i < g.forwardStructure.size(); ++i) {
-				for(int j=0; j < g.forwardStructure[i].size(); ++j) {
+			for(unsigned i = 0; i < g.forwardStructure.size(); ++i) {
+				for(unsigned j=0; j < g.forwardStructure[i].size(); ++j) {
 					BackwardGraphEdge& bEdge = g.backwardStorage[g.forwardStructure[i][j]];
 					ForwardGraphEdge& fEdge = g.forwardStorage[g.forwardStructure[i][j]];
 					

@@ -96,22 +96,22 @@ ABGraph::ABGraph(const InputGraph& g) : forwardStructure(g.numNodes()), edgeStru
 	//Set up edge inverses
 	vector<BackwardGraphEdge>::iterator j = backwardStorage.begin();
 	for(vector<ForwardGraphEdge>::iterator i = forwardStorage.begin(); i != forwardStorage.end(); ++i, ++j) {
-		unsigned toNodeId = i->toNode() - &nodeStorage[0];
-		unsigned fromNodeId = j->fromNode() - &nodeStorage[0];
+		long toNodeId = i->toNode() - &nodeStorage[0];
+		long fromNodeId = j->fromNode() - &nodeStorage[0];
 		i->setInverse(&backwardStorage[edge(toNodeId, fromNodeId)]);
 	}
 }
 
-void ABGraph::dijkstra(unsigned origin, vector<unsigned>& distances, vector<unsigned>& order)
+void ABGraph::dijkstra(unsigned origin, vector<long>& distances, vector<unsigned>& order)
 {
-	const unsigned unvisited = -1;//Ugly, dumb
+	const long unvisited = -1;//Ugly, dumb
 	
-	priority_queue<pair<double, unsigned> > queue;
+	priority_queue<pair<double, long> > queue;
 	queue.push(make_pair(0.0, origin));
 	
 	while(!queue.empty()) {
 		double distance = queue.top().first;
-		unsigned id = queue.top().second;
+		long id = queue.top().second;
 		
 		if(distance == -std::numeric_limits<double>::infinity()) break;
 		//Unnecessary, but saves putting unreachable nodes in the topo sort.
@@ -120,11 +120,11 @@ void ABGraph::dijkstra(unsigned origin, vector<unsigned>& distances, vector<unsi
 		if(distances[id] == unvisited) {//first hit on this node
 			
 			distances[id] = order.size();//final index
-			order.push_back(id);//out-topological sort.
+			order.push_back((unsigned)id);//out-topological sort.
 			
 			for(vector<unsigned>::iterator i = forwardStructure[id].begin(); i != forwardStructure[id].end(); ++i) {
 				ForwardGraphEdge& fge = forwardStorage[*i];
-				unsigned toNodeId = fge.toNode()-&nodeStorage[0];
+				long toNodeId = fge.toNode()-&nodeStorage[0];
 				if(distances[toNodeId] == unvisited) {
 					//If statement unnecessary, but cuts runtime by 1/3...
 					

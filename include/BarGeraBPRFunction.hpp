@@ -60,7 +60,7 @@ class BarGeraBPRFunction {
 BarGeraBPRFunction::BarGeraBPRFunction(double zeroFlowTime, double practicalCapacity, double alpha, double beta, double extraCost)
 {
 	if(std::floor(beta) == beta && beta >= 0) {
-		std::vector<double> polynomial(beta+1);
+		std::vector<double> polynomial((long)(beta+1.0));
 		polynomial.at(static_cast<unsigned>(beta)) = 1;
 		HornerPolynomial hp = HornerPolynomial(polynomial);
 		hp.multiplyX(1/practicalCapacity);

@@ -80,7 +80,7 @@ class AlgorithmBSolver
 		 * fifth of all bush-specific edges. Could get big space
 		 * savings at the expense of some time if we'd like.)
 		 */
-		int getCount() const;
+		long getCount() const;
 		double relativeGap();
 		double averageExcessCost();
 		void wasteTime() const;

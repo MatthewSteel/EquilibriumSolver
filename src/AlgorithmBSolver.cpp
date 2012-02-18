@@ -83,7 +83,7 @@ void AlgorithmBSolver::solve(unsigned iterationLimit)
 	for(list<Bush*>::iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
 		sum += (*i)->maxDifference();
 
-	double average= 0.25*sum / (bushes.size() + lazyBushes.size());
+	double average= 0.25*sum / ((double)(bushes.size() + lazyBushes.size()));
 	
 	for(unsigned iteration = 0; iteration < iterationLimit; ++iteration) {
 		if(iteration % 4 == 3) {
@@ -140,9 +140,9 @@ double AlgorithmBSolver::averageExcessCost()
 	return (upperBound-lowerBound)/demand;
 }
 
-int AlgorithmBSolver::getCount() const
+long AlgorithmBSolver::getCount() const
 {
-	int count = 0;
+	long count = 0;
 	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
 		count += (*i)->giveCount();
 	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
