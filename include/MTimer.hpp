@@ -13,6 +13,7 @@
 	 * Someone please test this. Tell me if it works,
 	 * tell me how to fix it if it doesn't :)
 	 */
+	#define NOMINMAX
 	#include "windows.h"
 	class MTimer {
 	public:

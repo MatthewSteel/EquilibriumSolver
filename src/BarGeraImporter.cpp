@@ -27,7 +27,7 @@ License along with EF.  If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
 
-void BarGeraImporter::readInGraph(InputGraph& graph, std::istream& networkStream, std::istream& tripsStream) throw (string)
+void BarGeraImporter::readInGraph(InputGraph& graph, std::istream& networkStream, std::istream& tripsStream)
 {
 	if(!networkStream) throw "Network file does not exist";
 	if(!tripsStream) throw "Trips file does not exist";

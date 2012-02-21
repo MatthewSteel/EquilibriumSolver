@@ -36,7 +36,7 @@ class BarGeraImporter {
 		BarGeraImporter(double distanceCost, double tollCost) :
 			distanceCost(distanceCost), tollCost(tollCost) {}
 		
-		void readInGraph(InputGraph& graph, std::istream& networkFile, std::istream& tripsFile) throw (std::string);
+		void readInGraph(InputGraph& graph, std::istream& networkFile, std::istream& tripsFile);
 	private:
 		
 		void readInNetwork(InputGraph& graph, std::istream& networkFile);
