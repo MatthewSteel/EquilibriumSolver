@@ -64,7 +64,7 @@ class ForwardGraphEdge
 		BackwardGraphEdge* getInverse() { return inverse; }
 		void addFlow(double d) {
 			flow += d;
-		}//TODO: add dist to BGE?
+		}
 		double getFlow() const { return flow; }
 	private:
 		InputGraph::VDF distanceFunction;//Dang, 32 bytes in GCC!?

@@ -34,7 +34,7 @@
 class Bush
 {
 	public:
-		Bush(const Origin&, ABGraph&, std::vector<std::pair<double, unsigned> >&, std::vector<unsigned>&);//Inits bush, sends initial flows
+		Bush(const Origin&, ABGraph&, std::vector<unsigned>&, std::vector<unsigned>&);//Inits bush, sends initial flows
 		bool fix(double);
 		void printCrap();
 		int getOrigin() { return origin.getOrigin(); }
@@ -42,10 +42,18 @@ class Bush
 		double allOrNothingCost();
 		double maxDifference();
 		~Bush();
+		void clearChanges() {
+			additions.clear();
+			deletions.clear();
+			tempStore.clear();
+		}
+		bool anyChanges() {
+			return (additions.size()+deletions.size())>0;
+		}
 	private:
 		bool updateEdges();
 		bool equilibriateFlows(double);//Equilibriates, tells graph what's going on
-		void updateEdges(EdgeVector&, double, unsigned);
+		void updateEdges(std::vector<BushEdge>::iterator&, std::vector<BushEdge>::iterator, double, unsigned);
 		void buildTrees();
 		void sendInitialFlows();
 		//Makes sure all our edges are pointing in the right direction, and we're sorted well.
@@ -55,36 +63,47 @@ class Bush
 		void partialTS(unsigned, unsigned);
 		
 		const Origin& origin;
-		std::vector<EdgeVector> bush;//Stores BushEdges, half the memory req of regular vectors.
-		//Not storing pointers because these are only 16 bytes each (can cut to 12).
+		std::vector<unsigned> edges;//Stores offsets into edge storage in TO.
+		std::vector<BushEdge> edgeStorage;//Stores BushEdges in contiguous memory (in TO)
 		
 		std::vector<unsigned> topologicalOrdering;
 		
 		//Shared with other bushes so we don't deallocate/reallocate data uselessly between bush iterations
 		std::vector<BushNode>& sharedNodes;
-		std::vector<std::pair<double, unsigned> >& tempStore;//Used in topo sort, don't want to waste the alloc/dealloc time.
+		std::vector<unsigned>& tempStore;//Used in topo sort, don't want to waste the alloc/dealloc time.
 		std::vector<unsigned> &reverseTS;
 		
 		ABGraph& graph;
 		
-		std::vector<std::pair<unsigned, unsigned> > changes;//BushEdges to reverse
-		
-		static bool pairComparator(const std::pair<double,unsigned>& first, const std::pair<double,unsigned>& second) {
-			return first.first < second.first;
-		}
-		
+		std::vector<std::pair<unsigned, BackwardGraphEdge*> > additions;//Used in updates. [to, edge]
+			//could sort on to-node?
+		std::vector<std::pair<unsigned, BushEdge*> > deletions;//[to-node, edge]
+};
+
+class NodeIndexComparator
+{
+public:
+	NodeIndexComparator(std::vector<BushNode> &sharedNodes) : sharedNodes(sharedNodes) {}
+	bool operator()(unsigned first, unsigned second) {
+		return sharedNodes[first].maxDist() < sharedNodes[second].maxDist();
+	}
+private:
+	std::vector<BushNode> &sharedNodes;
 };
 
 //Inlined because we call this once per node per iteration, and spend 35% of our time in here. FIXME
-inline void Bush::updateEdges(EdgeVector& inEdges, double maxDist, unsigned id)
+inline void Bush::updateEdges(std::vector<BushEdge>::iterator &from, std::vector<BushEdge>::iterator end, double maxDist, unsigned id)
 {
-	BushEdge *last = inEdges.end();
-	
-	for(BushEdge* changeBegin = inEdges.begin(); changeBegin != last; ++changeBegin) {
-		if(changeBegin->fromNode()->maxDist() > maxDist) {
-			changes.push_back(std::make_pair(id, changeBegin - inEdges.begin()));
-		
-		//	if(origin.getOrigin()==0 && debug) std::cout << "Edge to turn around: (" << id << "," << changeBegin->fromNode()-&sharedNodes[0] << ")" << std::endl;
+	for(; from < end; ++from) {
+		if(from->fromNode()->maxDist() > maxDist) {
+			deletions.push_back(std::make_pair(
+				id,
+				&*from
+			));
+			additions.push_back(std::make_pair(
+				from->fromNode()-&sharedNodes[0],
+				graph.forward(from->underlyingEdge())->getInverse()
+			));
 		}
 	}
 }

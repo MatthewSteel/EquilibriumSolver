@@ -68,14 +68,10 @@ void BushNode::fixDifferentPaths(
 	//Wait, is this done in the solver now?
 	
 	for(vector<pair<BushEdge*, ForwardGraphEdge*> >::iterator i = minEdges.begin(); i != minEdges.end(); ++i) {
-		i->first->addFlow(newFlow);
-		i->second->addFlow(newFlow);
-		i->first->underlyingEdge()->setDistance((*i->second->costFunction())(i->second->getFlow()));
+		i->first->addFlow(newFlow, i->second);
 	}
 	for(vector<pair<BushEdge*, ForwardGraphEdge*> >::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
-		i->first->addFlow(-newFlow);
-		i->second->addFlow(-newFlow);
-		i->first->underlyingEdge()->setDistance((*i->second->costFunction())(i->second->getFlow()));
+		i->first->addFlow(-newFlow, i->second);
 	}
 }
 

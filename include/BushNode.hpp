@@ -36,7 +36,7 @@ class BushNode
 	public:
 		BushNode();
 		void equilibriate(ABGraph&);
-		void updateInDistances(EdgeVector&);
+		void updateInDistances(std::vector<BushEdge>::iterator, std::vector<BushEdge>::iterator);
 		double minDist() const { return minDistance; }
 		double maxDist() const { return maxDistance; }
 		double getDifference() const { return (maxDistance-minDistance); }
@@ -64,7 +64,7 @@ updateEdges (and possibly topo-sort) as well to make it worthwhile. Still, for
 two threads that beats some other ideas. Don't sacrifice any convergence per
 iteration.
 */
-inline void BushNode::updateInDistances(EdgeVector& outEdges)
+inline void BushNode::updateInDistances(std::vector<BushEdge>::iterator it, std::vector<BushEdge>::iterator end)
 {
 	/*
 	Our rules are as follows:
@@ -84,15 +84,12 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 	could be costly, though.
 	*/
 	
-	BushEdge* minPred = 0;
-	BushEdge* maxPred = 0;
+	std::vector<BushEdge>::iterator minPred;
+	std::vector<BushEdge>::iterator maxPred;
 	double minDist = std::numeric_limits<double>::infinity();
 	double maxDist = std::numeric_limits<double>::infinity();
-	
-	BushEdge* it;
-	BushEdge* end = outEdges.end();
 
-	for(it = outEdges.begin(); it != end; ++it) {
+	for(; it != end; ++it) {
 		
 		//No flow to date.
 		BushNode *fromNode = it->fromNode();
@@ -136,8 +133,8 @@ inline void BushNode::updateInDistances(EdgeVector& outEdges)
 
 	maxDistance = maxDist;
 	minDistance = minDist;
-	maxPredecessor = maxPred;
-	minPredecessor = minPred;
+	maxPredecessor = &*maxPred;
+	minPredecessor = &*minPred;
 	//save our results
 }
 

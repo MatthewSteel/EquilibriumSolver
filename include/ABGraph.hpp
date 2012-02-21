@@ -95,6 +95,10 @@ class ABGraph
 			return backwardStorage[index];
 		}
 		
+		BackwardGraphEdge *edgesFrom(unsigned index) {
+			return &backwardStorage[index];
+		}
+		
 		/**
 		 * Gets the number of vertices in the graph.
 		 */

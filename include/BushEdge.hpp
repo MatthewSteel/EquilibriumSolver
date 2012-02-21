@@ -27,6 +27,7 @@
 
 #include "HornerPolynomial.hpp"
 #include "GraphEdge.hpp"
+
 #ifdef _MSC_VER
  #include <functional>
 #else
@@ -87,7 +88,11 @@ class BushEdge
 		/**
 		 * TODO
 		 */
-		void addFlow(double d) { ownFlow += d; }//TODO: Add flow to BGE?
+		void addFlow(double d, ForwardGraphEdge *fge) {
+			ownFlow += d;
+			fge->addFlow(d);
+			realEdge->setDistance((*fge->costFunction())(fge->getFlow()));
+		}
 		
 		BackwardGraphEdge* underlyingEdge() { return realEdge; }
 	private:
