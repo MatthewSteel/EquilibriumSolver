@@ -12,6 +12,10 @@ class ABAdder
 {
 	typedef const std::tr1::function<double(double)>* func;
 	public:
+		ABAdder(unsigned long addNum, unsigned long subtractNum) {
+			add.reserve(addNum);
+			subtract.reserve(subtractNum);
+		}
 		double operator()(double d) const {
 			double ret = 0;
 			for(std::vector<std::pair<func, double> >::const_iterator i = add.begin(); i != add.end(); ++i)

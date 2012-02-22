@@ -73,14 +73,6 @@ class AlgorithmBSolver
 			return o;
 		}
 		
-		
-		/**
-		 * Gets us a count of the total number of bush-specific edges
-		 * with positive flows. For curiosity. (It's usually about a
-		 * fifth of all bush-specific edges. Could get big space
-		 * savings at the expense of some time if we'd like.)
-		 */
-		long getCount() const;
 		double relativeGap();
 		double averageExcessCost();
 		void wasteTime() const;

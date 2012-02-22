@@ -51,7 +51,7 @@ void BushNode::fixDifferentPaths(
                double maxChange)
 {
 
-	ABAdder hp;
+	ABAdder hp(minEdges.size(), maxEdges.size());
 	for(vector<pair<BushEdge*, ForwardGraphEdge*> >::iterator i = maxEdges.begin(); i != maxEdges.end(); ++i) {
 		hp -= make_pair(i->second->costFunction(), i->second->getFlow());
 	}

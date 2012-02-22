@@ -64,11 +64,12 @@ void Bush::setUpGraph()
 			std::cout << "Unreachable dest: origin " << origin.getOrigin() << ", dest " << i->first << std::endl;
 	}
 	
+	edgeStorage.reserve(graph.numEdges());
 	for(unsigned i = 0; i < topologicalOrdering.size(); ++i) {
 		edges[i+1] = edges[i];
-
+		
 		BackwardGraphEdge *j = graph.edgesFrom(topologicalOrdering.at(i));
-		BackwardGraphEdge *end = graph.edgesFrom(topologicalOrdering.at(i+1));
+		BackwardGraphEdge *end = graph.edgesFrom(topologicalOrdering.at(i)+1);
 		for(; j != end; ++j) {
 			unsigned fromPosition = (unsigned)(distanceMap.at(j->fromNode()-&sharedNodes[0]));
 			if(fromPosition < i) {
@@ -76,6 +77,7 @@ void Bush::setUpGraph()
 				edgeStorage.push_back(BushEdge(j));
 			}
 		}
+//		cout << i << "\t" << edges[i] << "\t" << edges[i+1] << endl;
 	}
 }
 
@@ -168,13 +170,12 @@ void Bush::buildTrees()
 		unsigned id = *i;
 		BushNode &v = sharedNodes[id];
 		
-		vector<BushEdge>::iterator end = edgeStorage.begin()+*esp;
+		vector<BushEdge>::iterator end = edgeStorage.begin()+*(esp+1);
 		v.updateInDistances(evv, end);
 		reverseTS[id]=topoIndex;
 		
 		updateEdges(evv, end, v.maxDist(), id);
 	}
-	//TODO: Sort additions
 }//Resets min, max distances, builds min/max trees.
 
 bool Bush::updateEdges()
@@ -192,45 +193,58 @@ void Bush::topologicalSort()
 	/* Used to be a zero in-degree algorithm, O(V+E). Now just a simple
 	 * O(V log V) sort on nodes' max distance. Note that in real world
 	 * problems E is O(V), but sorting has a huge constant-factor
-	 * advantage.
+	 * advantage and lets me farm things out to the STL.
 	 * Because we now sort only those bits that can change (between the
-	 * ends of reversed edges) we now spend a negligible amount of time
-	 * in this function. Used to be around 10%.
-	 */
-	
-	/* Preconditions: Edges in outEdges define a strict partial order
-	 * on nodes, and an edge e=(v1,v2) exists only if 
-	 *   maxDist(v1)< maxDist(v2).
-	 * Indexes of all nodes ending up in the order need to begin in it,
-	 * too.
-	 * NOTE: If we deal with adjacent nodes with potential two-way zero-
-	 * length connecting arcs we may need to think harder. Bar-Gera (2002)
-	 * says, "strictly positive", though.
+	 * ends of reversed edges) we now only spend a small amount of time
+	 * in this function.
 	 * 
-	 * Postcondition: reverseTS etc must be valid.
+	 * In this function we find the overlapping reversed edges in the
+	 * topological ordering and then call partialTS on the regions.
+	 * 
+	 * Diagrams:
+	 * [------------------------------------------------------------]
+	 *  ^(whole ordering)              reversal1:     [i-------j]
+	 *     reversal2:    [i---j]
+	 *                             reversal3: [i-------j]
+	 * 
+	 * Final regions passed to partialTS:
+	 *                 1:[-----]            2:[-----------------]
 	 */
-	
-	//NOTE: must remember to sort additions and deletions... somehow.
-		//Stable sort on distance? Somehow?
 	
 	typedef vector<pair<unsigned, BushEdge*> >::reverse_iterator it;
+	it start = deletions.rbegin();
 	
-	for(it i = deletions.rbegin(); i != deletions.rend();) {
+	for(it i = deletions.rbegin(); i != deletions.rend(); start=i) {
+		
 		unsigned upperLimit = reverseTS[i->first];
 		unsigned lowerLimit = upperLimit;
 		
 		for(; i != deletions.rend() && reverseTS[i->first] >= lowerLimit; ++i) {
 			unsigned fromIndex = reverseTS[i->second->fromNode()-&sharedNodes[0]];
-			
 			if(lowerLimit > fromIndex) lowerLimit = fromIndex;
 		}
-		//TODO: Sort part of the deletions
+		
+		sort(start, i, DeletionsComparator(reverseTS, sharedNodes));
+		sort(additions.rbegin()+(start-deletions.rbegin()), additions.rbegin()+(i-deletions.rbegin()), AdditionsComparator(reverseTS, sharedNodes));
 		partialTS(lowerLimit, upperLimit+1);
 	}
 }
 
 void Bush::partialTS(unsigned lower, unsigned upper)
 {
+	/*
+	 * This is where the actual topological re-ordering happens. The
+	 * basic idea: we take region to be sorted and make a copy of the
+	 * topological order. We then do a stable-sort by the nodes'
+	 * maximum distances (as per buildTrees). We apply this new order
+	 * at the end.
+	 * Using this new order and the relevant additions and deltions
+	 * we also re-order the edge storage. We essentially make a copy
+	 * of the edgeStorage bits to reorder, fill it up in the new order
+	 * and then copy its contents back into the "real" edge storage
+	 * vector.
+	 */
+	
 	typedef vector<unsigned>::iterator vi;
 	
 	tempStore.clear();
@@ -241,32 +255,12 @@ void Bush::partialTS(unsigned lower, unsigned upper)
 	for(vi i = begin; i != end; ++i) {
 		tempStore.push_back(*i);
 	}
+	
 	stable_sort(tempStore.begin(), tempStore.end(), NodeIndexComparator(sharedNodes));
 	//tempStore is now a sorted list of [distance, id]
 	
-	//TODO: get the edges in order
-	vector<BushEdge> vb(upper-lower);
-	for(
-		vector<unsigned>::reverse_iterator i=tempStore.rbegin();
-		i != tempStore.rend();
-		++i
-	) {
-		unsigned id = *i;
-		unsigned tIndex = reverseTS[id];
-		vector<BushEdge>::iterator edgesEnd = edgeStorage.begin()+edges[tIndex+1];
-		for(vector<BushEdge>::iterator edgeIt = edgeStorage.begin()+edges[tIndex]; edgeIt != edgesEnd; ++edgeIt) {
-			if (&(*edgeIt) == deletions.back().second) {
-				deletions.pop_back();
-			} else {
-				vb.push_back(*edgeIt);
-			}
-		}
-		for(; additions.back().first == id; additions.pop_back()) {
-			vb.push_back(BushEdge(additions.back().second));
-		}
-	}
-	copy(vb.begin(), vb.end(), edgeStorage.begin()+lower);
-	
+	updateEdgeStorage(upper, lower);
+
 	unsigned numIndex=lower;
 	vi tsIndex = tempStore.begin();
 	for(vi i = begin; i != end; ++i, ++tsIndex, ++numIndex) {
@@ -282,31 +276,47 @@ void Bush::partialTS(unsigned lower, unsigned upper)
 	}
 }
 
-long Bush::giveCount()// const
+void Bush::updateEdgeStorage(unsigned upper, unsigned lower)
 {
-	//NOTE: now returns number of nodes with the same distance.
-	buildTrees();
-	long count = 0;
-	for(vector<unsigned>::iterator i = topologicalOrdering.begin(); i != topologicalOrdering.end();) {
-		double dist1 = sharedNodes.at(*i).maxDist();
-		vector<unsigned>::iterator j;
-		for(j = i+1; j != topologicalOrdering.end() && dist1 == sharedNodes.at(*j).maxDist(); ++j);
-		count += (j-i-1);
-		i = j;
-	}
-	return count;
-	
 	/*
-	//Returns the number of arcs with non-zero flow from this bush. Tends to
-	//reach about a fifth of all arcs in typical road networks.
-	int count = 0;
-	for(vector<vector<BushEdge> >::const_iterator i = bush.begin(); i != bush.end(); ++i) {
-		for(vector<BushEdge>::const_iterator j = i->begin(); j != i->end(); ++j) {
-			if(j->used()) ++count;
+	 * TODO: Make this pretty. It is probably the ugliest function in the
+	 * program.
+	 */
+	vector<BushEdge> vb;
+	vector<unsigned> edgeIndices(upper-lower);
+	unsigned edgeIndicesIndex=0;
+	
+	for(
+		vector<unsigned>::reverse_iterator i=tempStore.rbegin();
+		i != tempStore.rend();
+		++i, ++edgeIndicesIndex
+	) {
+		unsigned id = *i;
+		unsigned tIndex = reverseTS[id];
+		
+		vector<BushEdge>::iterator edgeIt = edgeStorage.begin()+edges[tIndex+1]-1;
+		for(vector<BushEdge>::iterator edgesEnd = edgeStorage.begin()+edges[tIndex]; edgeIt >= edgesEnd; --edgeIt) {
+			for(; additions.size() && additions.back().first == id && additions.back().second->fromNode() > edgeIt->fromNode(); additions.pop_back()) {
+				vb.push_back(BushEdge(additions.back().second));
+				++edgeIndices[edgeIndicesIndex];
+			}
+			if (deletions.size() && &(*edgeIt) == deletions.back().second) {
+				deletions.pop_back();
+			} else {
+				vb.push_back(*edgeIt);
+				++edgeIndices[edgeIndicesIndex];
+			}
+		}
+		for(; additions.size() && additions.back().first == id; additions.pop_back()) {//TODO: do this properly
+			vb.push_back(BushEdge(additions.back().second));
+			++edgeIndices[edgeIndicesIndex];
 		}
 	}
-	return count;
-	*/
+	copy(vb.rbegin(), vb.rend(), edgeStorage.begin()+edges[lower]);
+	edgeIndicesIndex = upper-lower;
+	for(vector<unsigned>::iterator i=edges.begin()+lower; i != edges.begin()+upper; ++i) {
+		*(i+1) = *i + edgeIndices[--edgeIndicesIndex];
+	}
 }
 
 double Bush::allOrNothingCost()

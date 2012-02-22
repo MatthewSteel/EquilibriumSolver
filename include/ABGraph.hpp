@@ -42,7 +42,7 @@ class ABGraph
 {
 	private:
 		std::vector<std::vector<unsigned> > forwardStructure;
-		std::vector<unsigned> edgeStructure;//still forwards
+		std::vector<unsigned> edgeStructure;
 		std::vector<ForwardGraphEdge> forwardStorage;
 		std::vector<BackwardGraphEdge> backwardStorage;
 		
@@ -64,7 +64,7 @@ class ABGraph
 					std::numeric_limits<double>::infinity()
 				)
 			)
-		) {;
+		) {
 			backwardStorage[loc]= BackwardGraphEdge(func, &nodeStorage.at(from));
 			forwardStorage[loc] = ForwardGraphEdge(func, &nodeStorage.at(to), &backwardStorage.back());
 			forwardStructure[from].push_back(loc);
@@ -96,13 +96,13 @@ class ABGraph
 		}
 		
 		BackwardGraphEdge *edgesFrom(unsigned index) {
-			return &backwardStorage[index];
+			return &backwardStorage[edgeStructure[index]];
 		}
 		
 		/**
 		 * Gets the number of vertices in the graph.
 		 */
-		std::size_t numVertices() const { return edgeStructure.size(); }
+		std::size_t numVertices() const { return forwardStructure.size(); }
 		/**
 		 * Gets the number of edges in the graph.
 		 */

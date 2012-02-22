@@ -33,7 +33,6 @@ AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(g.n
 {
 	//NOTE: A little heavy work in the graph ctor in the init list.
 	//Read ODData out of graph
-	
 	for(map<unsigned,map<unsigned, double> >::const_iterator i = g.demand().begin(); i != g.demand().end(); ++i) {
 		unsigned index = i->first;
 		Origin o(index);
@@ -139,17 +138,6 @@ double AlgorithmBSolver::averageExcessCost()
 	}
 	return (upperBound-lowerBound)/demand;
 }
-
-long AlgorithmBSolver::getCount() const
-{
-	long count = 0;
-	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)
-		count += (*i)->giveCount();
-	for(list<Bush*>::const_iterator i = lazyBushes.begin(); i != lazyBushes.end(); ++i)
-		count += (*i)->giveCount();
-	return count;
-}
-
 AlgorithmBSolver::~AlgorithmBSolver()
 {
 	for(list<Bush*>::const_iterator i = bushes.begin(); i != bushes.end(); ++i)

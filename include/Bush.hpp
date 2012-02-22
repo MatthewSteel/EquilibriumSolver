@@ -38,7 +38,6 @@ class Bush
 		bool fix(double);
 		void printCrap();
 		int getOrigin() { return origin.getOrigin(); }
-		long giveCount()/* const*/;
 		double allOrNothingCost();
 		double maxDifference();
 		~Bush();
@@ -52,6 +51,7 @@ class Bush
 		}
 	private:
 		bool updateEdges();
+		void updateEdgeStorage(unsigned, unsigned);
 		bool equilibriateFlows(double);//Equilibriates, tells graph what's going on
 		void updateEdges(std::vector<BushEdge>::iterator&, std::vector<BushEdge>::iterator, double, unsigned);
 		void buildTrees();
@@ -90,6 +90,48 @@ public:
 private:
 	std::vector<BushNode> &sharedNodes;
 };
+class AdditionsComparator
+{
+public:
+	AdditionsComparator(std::vector<unsigned> &reverseTS, std::vector<BushNode> &sharedNodes) : reverseTS(reverseTS), sharedNodes(sharedNodes) {}
+	bool operator()(const std::pair<unsigned, BackwardGraphEdge*> &first, const std::pair<unsigned, BackwardGraphEdge*> &second) {
+		//1. Order by distance.
+		double firstDistance = sharedNodes[first.first].maxDist();
+		double secondDistance = sharedNodes[second.first].maxDist();
+		if (firstDistance != secondDistance) return firstDistance > secondDistance;
+		
+		//2. If distance is equal, order by existing reverseTS
+		unsigned firstIndex = reverseTS[first.first];
+		unsigned secondIndex = reverseTS[second.first];
+		if(firstIndex != secondIndex) return firstIndex > secondIndex;
+		
+		//3. If existing reverseTS is equal, order by from-node id
+		return first.second->fromNode() > second.second->fromNode();
+	}
+private:
+	std::vector<unsigned> &reverseTS;
+	std::vector<BushNode> &sharedNodes;
+};
+class DeletionsComparator
+{
+public:
+	DeletionsComparator(std::vector<unsigned> &reverseTS, std::vector<BushNode> &sharedNodes) : reverseTS(reverseTS), sharedNodes(sharedNodes) {}
+	bool operator()(const std::pair<unsigned, BushEdge*> &first, const std::pair<unsigned, BushEdge*> &second) {
+		double firstDistance = sharedNodes[first.first].maxDist();
+		double secondDistance = sharedNodes[second.first].maxDist();
+		if(firstDistance != secondDistance) return firstDistance > secondDistance;//highest distance first
+		
+		unsigned firstIndex = reverseTS[first.first];
+		unsigned secondIndex = reverseTS[second.first];
+		if(firstIndex != secondIndex) return firstIndex > secondIndex;//highest to-node TS index next (stable sort)
+		
+		return first.second > second.second;//edges in order.
+	}
+private:
+	std::vector<unsigned> &reverseTS;
+	std::vector<BushNode> &sharedNodes;
+};
+
 
 //Inlined because we call this once per node per iteration, and spend 35% of our time in here. FIXME
 inline void Bush::updateEdges(std::vector<BushEdge>::iterator &from, std::vector<BushEdge>::iterator end, double maxDist, unsigned id)

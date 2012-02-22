@@ -64,7 +64,7 @@ ABGraph::ABGraph(const InputGraph& g) : forwardStructure(g.numNodes()), edgeStru
 	
 	forwardStorage.reserve(numberOfEdges);
 	backwardStorage.reserve(numberOfEdges);
-
+	
 	//Mirror the basic graph structure (with imaginary back-arcs when we need them):
 	for(GraphMap::const_iterator i = g.graph().begin(); i != g.graph().end(); ++i) {
 		unsigned fromNode = i->first;
