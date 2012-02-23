@@ -95,8 +95,8 @@ class ABGraph
 			return backwardStorage[index];
 		}
 		
-		BackwardGraphEdge *edgesFrom(unsigned index) {
-			return &backwardStorage[edgeStructure[index]];
+		std::vector<BackwardGraphEdge>::iterator edgesFrom(unsigned index) {
+			return backwardStorage.begin()+edgeStructure[index];
 		}
 		
 		/**

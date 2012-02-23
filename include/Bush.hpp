@@ -51,7 +51,7 @@ class Bush
 		}
 	private:
 		bool updateEdges();
-		void updateEdgeStorage(unsigned, unsigned);
+		void updateEdgeStorage(unsigned, unsigned, long);
 		bool equilibriateFlows(double);//Equilibriates, tells graph what's going on
 		void updateEdges(std::vector<BushEdge>::iterator&, std::vector<BushEdge>::iterator, double, unsigned);
 		void buildTrees();
@@ -60,7 +60,7 @@ class Bush
 		void setUpGraph();
 		void topologicalSort();
 		void applyBushEdgeChanges();
-		void partialTS(unsigned, unsigned);
+		void partialTS(unsigned, unsigned, long);
 		
 		const Origin& origin;
 		std::vector<unsigned> edges;//Stores offsets into edge storage in TO.
@@ -98,15 +98,15 @@ public:
 		//1. Order by distance.
 		double firstDistance = sharedNodes[first.first].maxDist();
 		double secondDistance = sharedNodes[second.first].maxDist();
-		if (firstDistance != secondDistance) return firstDistance > secondDistance;
+		if (firstDistance != secondDistance) return firstDistance < secondDistance;
 		
 		//2. If distance is equal, order by existing reverseTS
 		unsigned firstIndex = reverseTS[first.first];
 		unsigned secondIndex = reverseTS[second.first];
-		if(firstIndex != secondIndex) return firstIndex > secondIndex;
+		if(firstIndex != secondIndex) return firstIndex < secondIndex;
 		
 		//3. If existing reverseTS is equal, order by from-node id
-		return first.second->fromNode() > second.second->fromNode();
+		return first.second->fromNode() < second.second->fromNode();
 	}
 private:
 	std::vector<unsigned> &reverseTS;
@@ -119,13 +119,13 @@ public:
 	bool operator()(const std::pair<unsigned, BushEdge*> &first, const std::pair<unsigned, BushEdge*> &second) {
 		double firstDistance = sharedNodes[first.first].maxDist();
 		double secondDistance = sharedNodes[second.first].maxDist();
-		if(firstDistance != secondDistance) return firstDistance > secondDistance;//highest distance first
+		if(firstDistance != secondDistance) return firstDistance < secondDistance;//highest distance first
 		
 		unsigned firstIndex = reverseTS[first.first];
 		unsigned secondIndex = reverseTS[second.first];
-		if(firstIndex != secondIndex) return firstIndex > secondIndex;//highest to-node TS index next (stable sort)
+		if(firstIndex != secondIndex) return firstIndex < secondIndex;//highest to-node TS index next (stable sort)
 		
-		return first.second > second.second;//edges in order.
+		return first.second < second.second;//edges in order.
 	}
 private:
 	std::vector<unsigned> &reverseTS;

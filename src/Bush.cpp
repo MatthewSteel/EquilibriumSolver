@@ -68,13 +68,13 @@ void Bush::setUpGraph()
 	for(unsigned i = 0; i < topologicalOrdering.size(); ++i) {
 		edges[i+1] = edges[i];
 		
-		BackwardGraphEdge *j = graph.edgesFrom(topologicalOrdering.at(i));
-		BackwardGraphEdge *end = graph.edgesFrom(topologicalOrdering.at(i)+1);
+		vector<BackwardGraphEdge>::iterator j = graph.edgesFrom(topologicalOrdering.at(i));
+		vector<BackwardGraphEdge>::iterator end = graph.edgesFrom(topologicalOrdering.at(i)+1);
 		for(; j != end; ++j) {
 			unsigned fromPosition = (unsigned)(distanceMap.at(j->fromNode()-&sharedNodes[0]));
 			if(fromPosition < i) {
 				++edges[i+1];
-				edgeStorage.push_back(BushEdge(j));
+				edgeStorage.push_back(BushEdge(&*j));
 			}
 		}
 //		cout << i << "\t" << edges[i] << "\t" << edges[i+1] << endl;
@@ -209,28 +209,31 @@ void Bush::topologicalSort()
 	 * 
 	 * Final regions passed to partialTS:
 	 *                 1:[-----]            2:[-----------------]
+	 * 
+	 * Used to do something fun with reverse iterators, but Visual
+	 * Studio barfed on it (some technically illegal behaviour...)
+	 * so I've gone back to old-fashioned indexing. Fun fun.
 	 */
 	
-	typedef vector<pair<unsigned, BushEdge*> >::reverse_iterator it;
-	it start = deletions.rbegin();
+	long start = deletions.size();
 	
-	for(it i = deletions.rbegin(); i != deletions.rend(); start=i) {
+	for(long i = start; i > 0; start=i) {
 		
-		unsigned upperLimit = reverseTS[i->first];
+		unsigned upperLimit = reverseTS[deletions[i-1].first];
 		unsigned lowerLimit = upperLimit;
 		
-		for(; i != deletions.rend() && reverseTS[i->first] >= lowerLimit; ++i) {
-			unsigned fromIndex = reverseTS[i->second->fromNode()-&sharedNodes[0]];
+		for(; i > 0 && reverseTS[deletions[i-1].first] >= lowerLimit; --i) {
+			unsigned fromIndex = reverseTS[deletions[i-1].second->fromNode()-&sharedNodes[0]];
 			if(lowerLimit > fromIndex) lowerLimit = fromIndex;
 		}
 		
-		sort(start, i, DeletionsComparator(reverseTS, sharedNodes));
-		sort(additions.rbegin()+(start-deletions.rbegin()), additions.rbegin()+(i-deletions.rbegin()), AdditionsComparator(reverseTS, sharedNodes));
-		partialTS(lowerLimit, upperLimit+1);
+		sort(deletions.begin()+i, deletions.begin()+start, DeletionsComparator(reverseTS, sharedNodes));
+		sort(additions.begin()+i, additions.begin()+start, AdditionsComparator(reverseTS, sharedNodes));
+		partialTS(lowerLimit, upperLimit+1, start);
 	}
 }
 
-void Bush::partialTS(unsigned lower, unsigned upper)
+void Bush::partialTS(unsigned lower, unsigned upper, long start)
 {
 	/*
 	 * This is where the actual topological re-ordering happens. The
@@ -259,7 +262,7 @@ void Bush::partialTS(unsigned lower, unsigned upper)
 	stable_sort(tempStore.begin(), tempStore.end(), NodeIndexComparator(sharedNodes));
 	//tempStore is now a sorted list of [distance, id]
 	
-	updateEdgeStorage(upper, lower);
+	updateEdgeStorage(upper, lower, start);
 
 	unsigned numIndex=lower;
 	vi tsIndex = tempStore.begin();
@@ -276,12 +279,13 @@ void Bush::partialTS(unsigned lower, unsigned upper)
 	}
 }
 
-void Bush::updateEdgeStorage(unsigned upper, unsigned lower)
+void Bush::updateEdgeStorage(unsigned upper, unsigned lower, long deletionsIt)
 {
 	/*
 	 * TODO: Make this pretty. It is probably the ugliest function in the
 	 * program.
 	 */
+	long additionsIt = deletionsIt;
 	vector<BushEdge> vb;
 	vector<unsigned> edgeIndices(upper-lower);
 	unsigned edgeIndicesIndex=0;
@@ -294,21 +298,21 @@ void Bush::updateEdgeStorage(unsigned upper, unsigned lower)
 		unsigned id = *i;
 		unsigned tIndex = reverseTS[id];
 		
-		vector<BushEdge>::iterator edgeIt = edgeStorage.begin()+edges[tIndex+1]-1;
-		for(vector<BushEdge>::iterator edgesEnd = edgeStorage.begin()+edges[tIndex]; edgeIt >= edgesEnd; --edgeIt) {
-			for(; additions.size() && additions.back().first == id && additions.back().second->fromNode() > edgeIt->fromNode(); additions.pop_back()) {
-				vb.push_back(BushEdge(additions.back().second));
+		int edgeIt = edges[tIndex+1]-1;
+		for(int edgesEnd = edges[tIndex]; edgeIt >= edgesEnd; --edgeIt) {
+			for(; additionsIt && additions[additionsIt-1].first == id && additions[additionsIt-1].second->fromNode() > edgeStorage[edgeIt].fromNode(); --additionsIt) {
+				vb.push_back(BushEdge(additions[additionsIt-1].second));
 				++edgeIndices[edgeIndicesIndex];
 			}
-			if (deletions.size() && &(*edgeIt) == deletions.back().second) {
-				deletions.pop_back();
+			if (deletionsIt && &edgeStorage[edgeIt] == deletions[deletionsIt-1].second) {
+				--deletionsIt;
 			} else {
-				vb.push_back(*edgeIt);
+				vb.push_back(edgeStorage[edgeIt]);
 				++edgeIndices[edgeIndicesIndex];
 			}
 		}
-		for(; additions.size() && additions.back().first == id; additions.pop_back()) {//TODO: do this properly
-			vb.push_back(BushEdge(additions.back().second));
+		for(; additionsIt && additions[additionsIt-1].first == id; --additionsIt) {//TODO: do this properly
+			vb.push_back(BushEdge(additions[additionsIt-1].second));
 			++edgeIndices[edgeIndicesIndex];
 		}
 	}
