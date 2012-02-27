@@ -154,8 +154,8 @@ class ABGraph
 		std::vector<BushNode>& nodes() { return nodeStorage; }
 		
 		friend std::ostream& operator<<(std::ostream& o, ABGraph & g) {
-			o << "<NUMBER OF NODES>\t\t\n" << g.nodeStorage.size();
-			o << "<NUMBER OF LINKS>\t\t\n" << g.backwardStorage.size();
+			o << "<NUMBER OF NODES> \t" << g.nodeStorage.size()<<std::endl;
+			o << "<NUMBER OF LINKS> \t" << g.backwardStorage.size()<<std::endl;
 			o << "<END OF METADATA>\t\t\n\n\n";
 			o << "~ \tTail \tHead \t: \tVolume \tCost \t; \n";
 			
