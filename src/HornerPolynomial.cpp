@@ -20,6 +20,7 @@
 
 #include "HornerPolynomial.hpp"
 #include <algorithm>
+#include <functional>
 
 double HornerPolynomial::operator()(double x) const
 {

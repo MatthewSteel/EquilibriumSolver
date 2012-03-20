@@ -6,6 +6,8 @@
 
 #ifdef _MSC_VER
  #include <functional>
+#elif defined __PATHCC__
+ #include <boost/tr1/functional.hpp>
 #else
  #include <tr1/functional>
 #endif
@@ -14,7 +16,8 @@ class InputGraph {
 	public:
 		InputGraph() {}
 		typedef std::tr1::function<double(double)> VDF;
-		void addEdge(unsigned from, unsigned to, std::tr1::function<double(double)> vdf) {
+
+		void addEdge(unsigned from, unsigned to, VDF vdf) {
 			_graph[from][to] = vdf;
 		}
 		void addDemand(unsigned from, unsigned to, double demand) {

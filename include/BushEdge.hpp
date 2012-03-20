@@ -30,6 +30,8 @@
 
 #ifdef _MSC_VER
  #include <functional>
+#elif defined __PATHCC__
+ #include <boost/tr1/functional.hpp>
 #else
  #include <tr1/functional>
 #endif
