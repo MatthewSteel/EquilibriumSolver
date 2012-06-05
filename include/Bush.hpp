@@ -25,7 +25,6 @@
 #include "Origin.hpp"
 #include "BushNode.hpp"
 #include "ABGraph.hpp"
-#include "EdgeVector.hpp"
 
 #include <vector>
 #include <utility>
@@ -142,10 +141,9 @@ inline void Bush::updateEdges(std::vector<BushEdge>::iterator &from, std::vector
 				id,
 				&*from
 			));
-			BackwardGraphEdge *inv = graph.forward(from->underlyingEdge())->getInverse();
 			additions.push_back(std::make_pair(
-				graph.forward(inv)->toNode()-&sharedNodes[0],
-				inv
+				from->fromNode()-&sharedNodes[0],
+				graph.forward(from->underlyingEdge())->getInverse()
 			));
 		}
 	}

@@ -29,7 +29,7 @@ using namespace std;
 
 class BushEdge;
 
-AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(graph.nodes().size()), reverseTS(graph.nodes().size())
+AlgorithmBSolver::AlgorithmBSolver(const InputGraph& g): graph(g), tempStore(graph.nodes().size()), reverseTS(g.numNodes())
 {
 	//NOTE: A little heavy work in the graph ctor in the init list.
 	//Read ODData out of graph

@@ -31,6 +31,7 @@ class HornerPolynomial
 	public:
 		HornerPolynomial() {}
 		HornerPolynomial(const std::vector<double>& coeffs) : coeffs(coeffs) {}
+		HornerPolynomial(const HornerPolynomial& h) : coeffs(h.coeffs) {}//Maybe remove? Can't remember why I did before...
 		double operator()(double x) const;
 		void operator+=(const HornerPolynomial&);
 		void operator-=(const HornerPolynomial&);

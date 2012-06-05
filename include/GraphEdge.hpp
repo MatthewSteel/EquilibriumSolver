@@ -25,7 +25,6 @@
 #include <vector>
 #include <limits>
 #include "InputGraph.hpp"
-#include "HornerPolynomial.hpp"
 
 class BushNode;
 
@@ -55,7 +54,7 @@ class ForwardGraphEdge
 	public:
 		ForwardGraphEdge() : inverse(0), to(0), flow(0.0) {}
 
-		ForwardGraphEdge(InputGraph::VDF, BushNode* to);
+		ForwardGraphEdge(InputGraph::VDF, BushNode* to, BackwardGraphEdge* inverse=0);
 		ForwardGraphEdge(const ForwardGraphEdge& e);
 		
 		const InputGraph::VDF* costFunction() const { return &distanceFunction; }

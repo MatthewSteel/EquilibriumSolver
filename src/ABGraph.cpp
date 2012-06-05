@@ -26,7 +26,7 @@
 
 using namespace std;
 
-ABGraph::ABGraph(const InputGraph& g) : numberOfEdges(0)
+ABGraph::ABGraph(const InputGraph& g) : forwardStructure(g.numNodes()), nodeStorage(g.numNodes()), numberOfEdges(0)
 {
 	unsigned nodes=g.numNodes();
 	
@@ -35,10 +35,6 @@ ABGraph::ABGraph(const InputGraph& g) : numberOfEdges(0)
 	//Get a list of real and artificial arcs (sorted, contiguous etc)
 	getEdgeList(edgesList, g);
 
-	//If some nodes are over-full, move their in-edges to the end (new things).
-	nodes = splitLargeNodes(edgesList, MAX_EDGES_PER_NODE, nodes);
-	forwardStructure.resize(nodes);
-	nodeStorage.resize(nodes);
 	//CHAR_BIT/2*sizeof(unsigned) or similar later
 	
 	edgeStructure.reserve(nodes);
@@ -46,8 +42,8 @@ ABGraph::ABGraph(const InputGraph& g) : numberOfEdges(0)
 	
 	vector<EdgeHolder>::iterator j = edgesList.begin();
 	unsigned edgesSoFar = 0;
-	for(unsigned i=1; i <= nodes; ++i) {
-		for(; j != edgesList.end() && j->first != i; ++j, ++edgesSoFar) {
+	for(unsigned i=0; i <= nodes; ++i) {
+		for(; j != edgesList.end() && j->first == i; ++j, ++edgesSoFar) {
 			addEdge(*j);
 		}
 		edgeStructure.push_back(edgesSoFar);
@@ -72,7 +68,7 @@ void ABGraph::getEdgeList(vector<EdgeHolder>& edgesList, const InputGraph &g)
 		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
 			unsigned toNode = j->first;
 			edgesList.push_back(EdgeHolder(fromNode, toNode));
-			edgesList.push_back(EdgeHolder(toNode, fromNode, EdgeHolder::REAL, &j->second));
+			edgesList.push_back(EdgeHolder(toNode, fromNode, true, j->second));
 		}
 	}
 	sort(edgesList.begin(), edgesList.end());
@@ -80,51 +76,6 @@ void ABGraph::getEdgeList(vector<EdgeHolder>& edgesList, const InputGraph &g)
 	//remove duplicates
 	vpit end = unique(edgesList.begin(), edgesList.end());
 	edgesList.erase(end, edgesList.end());
-}
-
-unsigned ABGraph::splitLargeNodes(vector<EdgeHolder>& edgesList, unsigned MAX_EDGES_PER_NODE, unsigned nodes)
-{
-	for(unsigned i = 0; i < edgesList.size();) {
-		unsigned j=i+1;
-		unsigned node = edgesList.at(i).first;
-		for(; j < edgesList.size() && node == edgesList.at(j).first; ++j);
-		//(i,j) is the range of in-arcs to a given node
-		
-		if(j-i>MAX_EDGES_PER_NODE) { //too crowded
-			
-			//find out how many extra nodes,
-			unsigned extraNodes = (j-i-3)/(MAX_EDGES_PER_NODE-2);
-			unsigned edgeOverflow = j-i-MAX_EDGES_PER_NODE+1;
-			
-			//link them all up
-			edgesList.push_back(EdgeHolder(node, nodes, EdgeHolder::ZERO));
-			edgesList.push_back(EdgeHolder(nodes, node, EdgeHolder::ARTIFICIAL));
-
-			dummyNodes[node]=nodes;//TODO: Check this is the right way around
-			reverseDummies[nodes]=node;
-			
-			for(unsigned k=0; k+1<extraNodes; ++k) {
-				dummyNodes[nodes+k]=nodes+k+1;
-				reverseDummies[nodes+k+1]=nodes+k;
-				
-				edgesList.push_back(EdgeHolder(nodes+k, nodes+k+1, EdgeHolder::ZERO));
-				edgesList.push_back(EdgeHolder(nodes+k+1, node, EdgeHolder::ARTIFICIAL));
-			}
-			
-			//distribute the edges to the right places
-			unsigned from = i+MAX_EDGES_PER_NODE-1;
-			for(unsigned k=0; k < edgeOverflow; ++k) {
-				edgesList.at(from+k).first= nodes+k/(MAX_EDGES_PER_NODE-2);
-			}
-			edgesList.at(j-1).first = nodes+extraNodes-1;
-			//If MAX_EDGES_PER_NODE==3, node capacities are 2-1-1-...-1-2.
-			
-			nodes += extraNodes;
-		}
-		i=j;
-	}
-	sort(edgesList.begin(), edgesList.end());
-	return nodes;
 }
 
 void ABGraph::dijkstra(unsigned origin, vector<long>& distances, vector<unsigned>& order)
