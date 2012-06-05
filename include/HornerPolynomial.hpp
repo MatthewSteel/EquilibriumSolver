@@ -31,7 +31,6 @@ class HornerPolynomial
 	public:
 		HornerPolynomial() {}
 		HornerPolynomial(const std::vector<double>& coeffs) : coeffs(coeffs) {}
-		HornerPolynomial(const HornerPolynomial& h) : coeffs(h.coeffs) {}
 		double operator()(double x) const;
 		void operator+=(const HornerPolynomial&);
 		void operator-=(const HornerPolynomial&);

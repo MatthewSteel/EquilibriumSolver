@@ -142,9 +142,10 @@ inline void Bush::updateEdges(std::vector<BushEdge>::iterator &from, std::vector
 				id,
 				&*from
 			));
+			BackwardGraphEdge *inv = graph.forward(from->underlyingEdge())->getInverse();
 			additions.push_back(std::make_pair(
-				from->fromNode()-&sharedNodes[0],
-				graph.forward(from->underlyingEdge())->getInverse()
+				graph.forward(inv)->toNode()-&sharedNodes[0],
+				inv
 			));
 		}
 	}

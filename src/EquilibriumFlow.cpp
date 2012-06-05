@@ -44,7 +44,7 @@ void general(const char* netString, const char* tripString, double distanceFacto
 	AlgorithmBSolver abs(ig);
 	double time=0.0;
 	cout << (time += timer1.elapsed()) << endl;//*/
-
+//*/
 	double thisGap;
 	for(thisGap = abs.averageExcessCost(); thisGap > gap; thisGap = abs.averageExcessCost()) {
 		cout << time << ' ' << thisGap << endl;
@@ -54,7 +54,8 @@ void general(const char* netString, const char* tripString, double distanceFacto
 		time += t2.elapsed();
 	}
 	cout << time << ' ' << thisGap << endl;
-//	cout << abs << endl;
+	cout << abs << endl;
+//*/
 }
 
 class func {
@@ -70,15 +71,16 @@ int main (int argc, char **argv)
 //	general("networks/ChicagoSketch_net.txt", "networks/ChicagoSketch_trips.txt", 0.04, 0.02);
 //	general("networks/Braess_net.txt", "networks/Braess_trips.txt");
 //	general("networks/Auckland_net2.txt", "networks/Auckland_trips.txt");
-//	general("networks/SiouxFalls_net.txt", "networks/SiouxFalls_trips.txt");
+	general("networks/SiouxFalls_net.txt", "networks/SiouxFalls_trips.txt");
 //	general("networks/Anaheim_net.txt", "networks/Anaheim_trips.txt");
-	general("networks/ChicagoRegional_net.txt", "networks/ChicagoRegional_trips.txt", 0.25, 0.1, 1e-5);
+//	general("networks/ChicagoRegional_net.txt", "networks/ChicagoRegional_trips.txt", 0.25, 0.1, 1e-5);
 //	general("networks/Philadelphia_network.txt", "networks/Philadelphia_trips.txt", 0.0, 0.055, 1e-4);
 
-	/* //Braess' network paradox
-	InputGraph g;
+	 //Braess' network paradox
+/*	InputGraph g;
 	g.setNodes(5);
 	g.addEdge(0, 1, func(0.5,0));
+	g.addEdge(0, 4, func(0.5,0));
 	g.addEdge(0, 2, func(1.5,0));
 	g.addEdge(0, 3, func(2.5,0));
 	g.addEdge(1, 4, func(0.5,3));

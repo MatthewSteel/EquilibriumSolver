@@ -34,9 +34,9 @@ origin(o), edges(g.numVertices()+1), sharedNodes(g.nodes()), tempStore(tempStore
 	topologicalOrdering.reserve(g.numVertices());
 
 	setUpGraph();
+	
 	buildTrees();//Sets up predecessors. Unnecessary if we do preds
 	//in Dijkstra.
-	
 	sendInitialFlows();//Sends out initial flow patterns (all-or-nothing)
 	
 	clearChanges();
@@ -61,7 +61,7 @@ void Bush::setUpGraph()
 	//TEST: destination unreachable from origin.
 	for(vector<pair<int, double> >::const_iterator i = origin.dests().begin(); i != origin.dests().end(); ++i) {
 		if(distanceMap.at(i->first) == -1)
-			std::cout << "Unreachable dest: origin " << origin.getOrigin() << ", dest " << i->first << std::endl;
+			std::cerr << "Unreachable dest: origin " << origin.getOrigin() << ", dest " << i->first << std::endl;
 	}
 	
 	edgeStorage.reserve(graph.numEdges());
@@ -172,6 +172,7 @@ void Bush::buildTrees()
 		
 		vector<BushEdge>::iterator end = edgeStorage.begin()+*(esp+1);
 		v.updateInDistances(evv, end);
+		
 		reverseTS[id]=topoIndex;
 		
 		updateEdges(evv, end, v.maxDist(), id);

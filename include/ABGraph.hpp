@@ -32,6 +32,7 @@ executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 #include "HornerPolynomial.hpp"
 #include <iostream>
 #include "InputGraph.hpp"
+#include <climits>//for CHAR_BIT
 
 /**
  * Graph class providing some nice, simple storage for bush-specific data.
@@ -41,10 +42,13 @@ executable somewhat smaller. As a bonus, we can remove Boost as a dep soon.*/
 class ABGraph
 {
 	private:
+		const static unsigned MAX_EDGES_PER_NODE = 100;
 		std::vector<std::vector<unsigned> > forwardStructure;
 		std::vector<unsigned> edgeStructure;
 		std::vector<ForwardGraphEdge> forwardStorage;
 		std::vector<BackwardGraphEdge> backwardStorage;
+		std::map<long, long> dummyNodes;
+		std::map<long, long> reverseDummies;
 		
 		std::vector<BushNode> nodeStorage;
 		//Better idea: Store these things in a row, as now, but ordered specially so we can store structure as 2 iterators.
@@ -56,19 +60,91 @@ class ABGraph
 		 * Adds an edge. To-node and from-node are retrieved from the
 		 * parameter's data if they're necessary.
 		 */
-		void addEdge(
-			unsigned from, unsigned to, unsigned loc,
-			InputGraph::VDF func = HornerPolynomial(
-				std::vector<double>(
-					1, 
-					std::numeric_limits<double>::infinity()
-				)
-			)
-		) {
-			backwardStorage[loc]= BackwardGraphEdge(func, &nodeStorage.at(from));
-			forwardStorage[loc] = ForwardGraphEdge(func, &nodeStorage.at(to), &backwardStorage.back());
-			forwardStructure[from].push_back(loc);
+				
+		class EdgeHolder {
+		public:
+			enum Status {
+				ARTIFICIAL,
+				REAL,
+				ZERO
+			};
+			EdgeHolder(unsigned to, unsigned from, Status status=ARTIFICIAL, const InputGraph::VDF *func=0) : first(to), second(from), status(status), func(func) {}
+			bool operator<(const EdgeHolder &e) const {
+				if(first != e.first) return first < e.first;
+				if(second != e.second) return second < e.second;
+				return status != ARTIFICIAL;
+			}
+			bool operator==(const EdgeHolder &e) const {
+				return (first==e.first && second==e.second);
+			}
+			unsigned first, second;
+			Status status;
+			const InputGraph::VDF *func;
+		};
+
+		
+		void addEdge(EdgeHolder &e) {
+			forwardStructure.at(e.second).push_back(static_cast<unsigned>(forwardStorage.size()));
+			
+			if (e.status == EdgeHolder::ARTIFICIAL) {
+				backwardStorage.push_back(BackwardGraphEdge(
+					std::numeric_limits<double>::infinity(),
+					&nodeStorage.at(e.second)
+				));
+				forwardStorage.push_back(ForwardGraphEdge(
+					HornerPolynomial(
+						std::vector<double>(1, std::numeric_limits<double>::infinity())
+					),
+					&nodeStorage.at(e.first)
+				));
+			} else if (e.status == EdgeHolder::ZERO) {
+				backwardStorage.push_back(BackwardGraphEdge(0, &nodeStorage.at(e.second)));
+				forwardStorage.push_back(ForwardGraphEdge(
+					HornerPolynomial(std::vector<double>(1, 0)),
+					&nodeStorage.at(e.first)
+				));
+			} else {
+				backwardStorage.push_back(BackwardGraphEdge((*(e.func))(0.0), &nodeStorage.at(e.second)));
+				forwardStorage.push_back(ForwardGraphEdge(
+					*(e.func),
+					&nodeStorage.at(e.first)
+				));
+			}
 		}
+		
+		unsigned edge(long from, long to, bool begin=true) {
+			//try1
+			if(begin) {
+				for(std::map<long, long>::iterator it = reverseDummies.find(to);
+					it != reverseDummies.end();
+					it = reverseDummies.find(to)) {
+						to = it->second;
+				}
+				for(unsigned i = edgeStructure.at(to); i != edgeStructure.at(to+1); ++i) {
+					if(backwardStorage.at(i).fromNode()-&nodeStorage[0] == from) {
+						return (i);
+					}
+				}
+				for(std::map<long, long>::iterator it = reverseDummies.find(from);
+				    it != reverseDummies.end();
+				    it = reverseDummies.find(from)) {
+					from = it->second;
+				}
+			}
+			for(unsigned i = edgeStructure.at(to); i != edgeStructure.at(to+1); ++i) {
+				if(backwardStorage.at(i).fromNode()-&nodeStorage[0] == from) {
+					return (i);
+				}
+			}
+			std::map<long, long>::iterator it = dummyNodes.find(to);
+			if(it != dummyNodes.end()) return(edge(from, it->second, false));
+			
+			std::cerr << "Can't find edge (" << from << ", " << to << ")" << std::endl;
+			throw "Edge does not exist";
+		}//Not worth doing a binary search because traffic networks are so sparse
+		
+		void getEdgeList(std::vector<EdgeHolder>&, const InputGraph &);
+		unsigned splitLargeNodes(std::vector<EdgeHolder>&, unsigned, unsigned);
 
 	public:
 		/**
@@ -80,14 +156,6 @@ class ABGraph
 		/**
 		 * Simple structure query, returns index of edges between two nodes.
 		 */
-		unsigned edge(long from, long to) {
-			for(unsigned i = edgeStructure[to]; i != edgeStructure[to+1]; ++i) {
-				if(backwardStorage[i].fromNode()-&nodeStorage[0] == from) return (i);
-			}
-			std::cout << "Can't find edge (" << from << ", " << to << ")" << std::endl;
-			throw "Edge does not exist";
-		}//Not worth doing a binary search because traffic networks are so sparse
-		
 		ForwardGraphEdge& forwardEdge(unsigned index) {
 			return forwardStorage[index];
 		}
@@ -96,7 +164,7 @@ class ABGraph
 		}
 		
 		std::vector<BackwardGraphEdge>::iterator edgesFrom(unsigned index) {
-			return backwardStorage.begin()+edgeStructure[index];
+			return backwardStorage.begin()+edgeStructure.at(index);
 		}
 		
 		/**

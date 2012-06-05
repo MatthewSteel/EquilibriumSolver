@@ -22,96 +22,121 @@
 #include <iostream>
 #include <queue>
 #include <utility>
+#include <tr1/tuple>
 
 using namespace std;
 
-ABGraph::ABGraph(const InputGraph& g) : forwardStructure(g.numNodes()), edgeStructure(g.numNodes()+1), numberOfEdges(0)
+ABGraph::ABGraph(const InputGraph& g) : numberOfEdges(0)
 {
-	//Set up contiguous node storage
-	nodeStorage.reserve(g.numNodes());
-	for(unsigned i = 0; i < g.numNodes(); ++i) {
-		nodeStorage.push_back(BushNode());
+	unsigned nodes=g.numNodes();
+	
+	vector<EdgeHolder> edgesList;
+
+	//Get a list of real and artificial arcs (sorted, contiguous etc)
+	getEdgeList(edgesList, g);
+
+	//If some nodes are over-full, move their in-edges to the end (new things).
+	nodes = splitLargeNodes(edgesList, MAX_EDGES_PER_NODE, nodes);
+	forwardStructure.resize(nodes);
+	nodeStorage.resize(nodes);
+	//CHAR_BIT/2*sizeof(unsigned) or similar later
+	
+	edgeStructure.reserve(nodes);
+	edgeStructure.push_back(0);
+	
+	vector<EdgeHolder>::iterator j = edgesList.begin();
+	unsigned edgesSoFar = 0;
+	for(unsigned i=1; i <= nodes; ++i) {
+		for(; j != edgesList.end() && j->first != i; ++j, ++edgesSoFar) {
+			addEdge(*j);
+		}
+		edgeStructure.push_back(edgesSoFar);
 	}
+	edgeStructure.push_back(edgesSoFar);
+	
+	for(unsigned i = 0; i < edgesList.size(); ++i) {
+		EdgeHolder &e = edgesList.at(i);
+		forwardStorage.at(i).setInverse(&backwardStorage.at(edge(e.first, e.second)));
+	}
+}
+
+void ABGraph::getEdgeList(vector<EdgeHolder>& edgesList, const InputGraph &g)
+{
+	typedef vector<EdgeHolder>::iterator vpit;
 	typedef map<unsigned,InputGraph::VDF> EdgeMap;
 	typedef map<unsigned,EdgeMap> GraphMap;
 	
-	vector<unsigned> edgeNums(g.numNodes());
-	
-	//Set up contiguous edge storage
-	//Count edges first (so we don't get a vector reallocation when we add them in)
+	//Get a list of all edges (real or imagined)
 	for(GraphMap::const_iterator i = g.graph().begin(); i != g.graph().end(); ++i) {
 		unsigned fromNode = i->first;
 		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
-			++numberOfEdges;
 			unsigned toNode = j->first;
-			++edgeNums[toNode];//Log number of edges into this node
-			GraphMap::const_iterator k = g.graph().find(toNode);
-			if(k == g.graph().end() || k->second.find(fromNode)==k->second.end()) {
-				++numberOfEdges;
-				++edgeNums[fromNode];
-			}//Reverse edge not found
+			edgesList.push_back(EdgeHolder(fromNode, toNode));
+			edgesList.push_back(EdgeHolder(toNode, fromNode, EdgeHolder::REAL, &j->second));
 		}
 	}
+	sort(edgesList.begin(), edgesList.end());
 	
-	forwardStorage.resize(numberOfEdges);
-	backwardStorage.resize(numberOfEdges);
-	
-	vector<unsigned>::iterator it = edgeNums.begin();
-	for(vector<unsigned>::iterator i = edgeStructure.begin()+1; i != edgeStructure.end(); ++i, ++it) {
-		*i = *(i-1)+*it;
-	}
-	
-	
-	forwardStorage.reserve(numberOfEdges);
-	backwardStorage.reserve(numberOfEdges);
-	
-	//Mirror the basic graph structure (with imaginary back-arcs when we need them):
-	for(GraphMap::const_iterator i = g.graph().begin(); i != g.graph().end(); ++i) {
-		unsigned fromNode = i->first;
-		for(EdgeMap::const_iterator j = i->second.begin(); j != i->second.end(); ++j) {
-			unsigned toNode = j->first;
+	//remove duplicates
+	vpit end = unique(edgesList.begin(), edgesList.end());
+	edgesList.erase(end, edgesList.end());
+}
 
-			addEdge(
-				fromNode,
-				toNode,
-				edgeStructure[toNode+1]-edgeNums[toNode],
-				j->second
-			);
-			edgeNums[toNode]--;
+unsigned ABGraph::splitLargeNodes(vector<EdgeHolder>& edgesList, unsigned MAX_EDGES_PER_NODE, unsigned nodes)
+{
+	for(unsigned i = 0; i < edgesList.size();) {
+		unsigned j=i+1;
+		unsigned node = edgesList.at(i).first;
+		for(; j < edgesList.size() && node == edgesList.at(j).first; ++j);
+		//(i,j) is the range of in-arcs to a given node
+		
+		if(j-i>MAX_EDGES_PER_NODE) { //too crowded
 			
-			GraphMap::const_iterator k = g.graph().find(toNode);
-			if(k == g.graph().end() || k->second.find(fromNode)==k->second.end()) {
-				//Imaginary arc setup
-				addEdge(
-					toNode,
-					fromNode,
-					edgeStructure[fromNode+1]-edgeNums[fromNode]
-					
-				);
-				--edgeNums[fromNode];
-			}
-		}
-	}
+			//find out how many extra nodes,
+			unsigned extraNodes = (j-i-3)/(MAX_EDGES_PER_NODE-2);
+			unsigned edgeOverflow = j-i-MAX_EDGES_PER_NODE+1;
+			
+			//link them all up
+			edgesList.push_back(EdgeHolder(node, nodes, EdgeHolder::ZERO));
+			edgesList.push_back(EdgeHolder(nodes, node, EdgeHolder::ARTIFICIAL));
 
-	//Set up edge inverses
-	vector<BackwardGraphEdge>::iterator j = backwardStorage.begin();
-	for(vector<ForwardGraphEdge>::iterator i = forwardStorage.begin(); i != forwardStorage.end(); ++i, ++j) {
-		long toNodeId = i->toNode() - &nodeStorage[0];
-		long fromNodeId = j->fromNode() - &nodeStorage[0];
-		i->setInverse(&backwardStorage[edge(toNodeId, fromNodeId)]);
+			dummyNodes[node]=nodes;//TODO: Check this is the right way around
+			reverseDummies[nodes]=node;
+			
+			for(unsigned k=0; k+1<extraNodes; ++k) {
+				dummyNodes[nodes+k]=nodes+k+1;
+				reverseDummies[nodes+k+1]=nodes+k;
+				
+				edgesList.push_back(EdgeHolder(nodes+k, nodes+k+1, EdgeHolder::ZERO));
+				edgesList.push_back(EdgeHolder(nodes+k+1, node, EdgeHolder::ARTIFICIAL));
+			}
+			
+			//distribute the edges to the right places
+			unsigned from = i+MAX_EDGES_PER_NODE-1;
+			for(unsigned k=0; k < edgeOverflow; ++k) {
+				edgesList.at(from+k).first= nodes+k/(MAX_EDGES_PER_NODE-2);
+			}
+			edgesList.at(j-1).first = nodes+extraNodes-1;
+			//If MAX_EDGES_PER_NODE==3, node capacities are 2-1-1-...-1-2.
+			
+			nodes += extraNodes;
+		}
+		i=j;
 	}
+	sort(edgesList.begin(), edgesList.end());
+	return nodes;
 }
 
 void ABGraph::dijkstra(unsigned origin, vector<long>& distances, vector<unsigned>& order)
 {
 	const long unvisited = -1;//Ugly, dumb
 	
-	priority_queue<pair<double, long> > queue;
-	queue.push(make_pair(0.0, origin));
+	priority_queue<tr1::tuple<double, long, long> > queue;
+	queue.push(tr1::make_tuple(0.0, 0, origin));
 	
 	while(!queue.empty()) {
-		double distance = queue.top().first;
-		long id = queue.top().second;
+		double distance = tr1::get<0>(queue.top());
+		long id = tr1::get<2>(queue.top());
 		
 		if(distance == -std::numeric_limits<double>::infinity()) break;
 		//Unnecessary, but saves putting unreachable nodes in the topo sort.
@@ -129,11 +154,13 @@ void ABGraph::dijkstra(unsigned origin, vector<long>& distances, vector<unsigned
 					//If statement unnecessary, but cuts runtime by 1/3...
 					
 					BackwardGraphEdge& bge = backwardStorage[*i];
-					queue.push(make_pair(distance - bge.distance(), toNodeId));
+					queue.push(tr1::make_tuple(distance - bge.distance(), -order.size(), toNodeId));
+					
 					//(dist - len) instead of (dist + len) because it's a max-queue (we want the min)
 				}
 			}
 		}
 		queue.pop();
+		
 	}
 }

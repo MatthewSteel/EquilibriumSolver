@@ -24,15 +24,15 @@
 
 using namespace std;
 
-BackwardGraphEdge::BackwardGraphEdge(InputGraph::VDF i, BushNode *from) : from(from), _distance(i(0))
+BackwardGraphEdge::BackwardGraphEdge(double d, BushNode *from) : from(from), _distance(d)
 {}
 
 BackwardGraphEdge::BackwardGraphEdge(const BackwardGraphEdge & e) : from(e.from), _distance(e._distance)
 {}
 
-ForwardGraphEdge::ForwardGraphEdge(InputGraph::VDF i, BushNode *to, BackwardGraphEdge *e):
+ForwardGraphEdge::ForwardGraphEdge(InputGraph::VDF i, BushNode *to):
 	distanceFunction(i),
-	inverse(e),
+	inverse(0),
 	to(to),
 	flow(0)
 {}
