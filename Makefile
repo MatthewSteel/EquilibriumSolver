@@ -1,4 +1,4 @@
-EXE = EF
+EXE = GEF
 
 OBJS = \
 	EquilibriumFlow.o HornerPolynomial.o Bush.o\

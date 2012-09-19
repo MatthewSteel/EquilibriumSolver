@@ -27,7 +27,6 @@
 #include <utility>
 
 #include "BushEdge.hpp"
-#include "EdgeVector.hpp"
 
 class ABGraph;
 
